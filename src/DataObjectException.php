@@ -1,5 +1,5 @@
 <?php
-namespace MyPDO;
+namespace MDO;
 
 class DataObjectException extends Exception
 {

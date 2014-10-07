@@ -1,5 +1,5 @@
 <?php
-namespace MyPDO;
+namespace MDO;
 
 class ProfilerException extends Exception
 {

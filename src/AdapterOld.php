@@ -1,7 +1,7 @@
 <?php
 namespace MDO;
 
-class Adapter extends mysqli
+class Adapter
 {
 	/**
 	 * Use the PROFILER constant in the config of a Zend_Db_Adapter.
@@ -12,6 +12,11 @@ class Adapter extends mysqli
 	 * Use the CASE_FOLDING constant in the config of a Zend_Db_Adapter.
 	 */
 	const CASE_FOLDING = 'caseFolding';
+	
+	/**
+	 * Use the FETCH_MODE constant in the config of a Zend_Db_Adapter.
+	 */
+	const FETCH_MODE = 'fetchMode';
 	
 	/**
 	 * Use the AUTO_QUOTE_IDENTIFIERS constant in the config of a Zend_Db_Adapter.
@@ -43,6 +48,13 @@ class Adapter extends mysqli
 	protected $_config = array();
 
 	/**
+	 * Fetch mode
+	 *
+	 * @var integer
+	 */
+	protected $_fetchMode = PDO::FETCH_ASSOC;
+
+	/**
 	 * Query profiler object, of type Profiler
 	 * or a subclass of that.
 	 *
@@ -56,6 +68,13 @@ class Adapter extends mysqli
 	 * @var string
 	 */
 	protected $_defaultProfilerClass = 'MDO\Profiler';
+
+	/**
+	 * Database connection
+	 *
+	 * @var PDO|null
+	 */
+	protected $_connection = null;
 
 	/**
 	 * Specifies the case of column names retrieved in queries
@@ -122,6 +141,7 @@ class Adapter extends mysqli
 		$options = array(
 			self::CASE_FOLDING		   => $this->_caseFolding,
 			self::AUTO_QUOTE_IDENTIFIERS => $this->_autoQuoteIdentifiers,
+			self::FETCH_MODE			 => $this->_fetchMode,
 		);
 		$driverOptions = array();
 
@@ -161,6 +181,16 @@ class Adapter extends mysqli
 			$this->_caseFolding = (int) $options[self::CASE_FOLDING];
 		}
 
+		if (array_key_exists(self::FETCH_MODE, $options)) {
+			if (is_string($options[self::FETCH_MODE])) {
+				$constant = 'PDO::FETCH_' . strtoupper($options[self::FETCH_MODE]);
+				if(defined($constant)) {
+					$options[self::FETCH_MODE] = constant($constant);
+				}
+			}
+			$this->setFetchMode((int) $options[self::FETCH_MODE]);
+		}
+
 		// obtain quoting property if there is one
 		if (array_key_exists(self::AUTO_QUOTE_IDENTIFIERS, $options)) {
 			$this->_autoQuoteIdentifiers = (bool) $options[self::AUTO_QUOTE_IDENTIFIERS];
@@ -184,6 +214,18 @@ class Adapter extends mysqli
 				$this->setProfiler($this->_config[self::PROFILER]);
 			unset($this->_config[self::PROFILER]);
 		}
+	}
+
+	/**
+	 * Returns the underlying database connection object or resource.
+	 * If not presently connected, this initiates the connection.
+	 *
+	 * @return object|resource|null
+	 */
+	public function getConnection()
+	{
+		$this->_connect();
+		return $this->_connection;
 	}
 
 	/**
@@ -234,6 +276,10 @@ class Adapter extends mysqli
 			if ($profiler instanceof Profiler) {
 				$profilerInstance = $profiler;
 			} else {
+				/**
+				 * @see ProfilerException
+				 */
+				//require_once 'Zend/Db/Profiler/Exception.php';
 				throw new ProfilerException('Profiler argument must be an instance of either Profiler'
 					. ' or Zend_Config when provided as an object');
 			}
@@ -258,6 +304,8 @@ class Adapter extends mysqli
 		}
 
 		if (!$profilerInstance instanceof Profiler) {
+			/** @see ProfilerException */
+			//require_once 'Zend/Db/Profiler/Exception.php';
 			throw new ProfilerException('Class ' . get_class($profilerInstance) . ' does not extend '
 				. 'Profiler');
 		}
@@ -291,7 +339,7 @@ class Adapter extends mysqli
 	{
 		$this->_connect();
 		if ($this->_profiler) $q = $this->_profiler->queryStart('begin', Profiler::TRANSACTION);
-		parent::begin_transaction();
+		$this->_beginTransaction();
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
 		return $this;
 	}
@@ -305,7 +353,7 @@ class Adapter extends mysqli
 	{
 		$this->_connect();
 		if ($this->_profiler) $q = $this->_profiler->queryStart('commit', Profiler::TRANSACTION);
-		parent::commit();
+		$this->_commit();
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
 		return $this;
 	}
@@ -319,9 +367,216 @@ class Adapter extends mysqli
 	{
 		$this->_connect();
 		if ($this->_profiler) $q = $this->_profiler->queryStart('rollback', Profiler::TRANSACTION);
-		parent::rollback();
+		$this->_rollBack();
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
 		return $this;
+	}
+
+	/**
+	 * Inserts a table row with specified data.
+	 *
+	 * @param mixed $table The table to insert data into.
+	 * @param array $bind Column-value pairs.
+	 * @return int The number of affected rows.
+	 */
+	public function insert($table, array $bind, $keyword = null)
+	{
+		// extract and quote col names from the array keys
+		$cols = array();
+		$vals = array();
+		
+		foreach ($bind as $col => $val) {
+			$cols[] = $this->quoteIdentifier($col, true);
+			if ($val instanceof Expr) {
+				$vals[] = $val->__toString();
+				unset($bind[$col]);
+			} else {
+				$vals[] = '?';
+			}
+		}
+
+		// build the statement
+		$sql = ($keyword ? "INSERT $keyword INTO " : "INSERT INTO ")
+			 . $this->quoteIdentifier($table, true)
+			 . ' (' . implode(', ', $cols) . ') '
+			 . 'VALUES (' . implode(', ', $vals) . ')';
+
+		// execute the statement and return the number of affected rows
+		$bind = array_values($bind);
+		$stmt = $this->query($sql, $bind);
+		$result = $stmt->rowCount();
+		return $result;
+	}
+	
+	/**
+	 * 使用insert delayed插入一条记录
+	 *
+	 * @param mixed $table The table to insert data into.
+	 * @param array $bind Column-value pairs.
+	 * @return int The number of affected rows.
+	 */
+	public function insertDelayed($table, array $bind)
+	{
+		return $this->insert($table, $bind, 'DELAYED');
+	}
+	
+	/**
+	 * 使用insert ignore插入一条记录
+	 *
+	 * @param mixed $table The table to insert data into.
+	 * @param array $bind Column-value pairs.
+	 * @return int The number of affected rows.
+	 */
+	public function insertIgnore($table, array $bind)
+	{
+		return $this->insert($table, $bind, 'IGNORE');
+	}
+	
+	public function insertOnDuplicateKeyUpdate($table, array $insertBind, array $updateBind)
+	{
+		// extract and quote col names from the array keys
+		$cols = array();
+		$vals = array();
+		foreach ($insertBind as $col => $val) {
+			$cols[] = $this->quoteIdentifier($col, true);
+			if ($val instanceof Expr) {
+				$vals[] = $val->__toString();
+				unset($insertBind[$col]);
+			} else {
+				$vals[] = '?';
+			}
+		}
+
+		/**
+		 * Build "col = ?" pairs for the statement,
+		 * except for Expr which is treated literally.
+		 */
+		$set = array();
+		foreach ($updateBind as $col => $val) {
+			if ($val instanceof Expr) {
+				$val = $val->__toString();
+				unset($updateBind[$col]);
+			} else {
+				$val = '?';
+			}
+			$set[] = $this->quoteIdentifier($col, true) . ' = ' . $val;
+		}
+
+		// build the statement
+		$sql = "INSERT INTO "
+			 . $this->quoteIdentifier($table, true)
+			 . ' (' . implode(', ', $cols) . ') '
+			 . 'VALUES (' . implode(', ', $vals) . ')'
+			 . ' ON DUPLICATE KEY UPDATE ' . implode(', ', $set);
+		
+		// execute the statement and return the number of affected rows
+		$bind = array_merge(array_values($insertBind), array_values($updateBind));
+		$stmt = $this->query($sql, $bind);
+		$result = $stmt->rowCount();
+		return $result;
+	}
+	
+	/**
+	 * Updates table rows with specified data based on a WHERE clause.
+	 *
+	 * @param  mixed		$table The table to update.
+	 * @param  array		$bind  Column-value pairs.
+	 * @param  mixed		$where UPDATE WHERE clause(s).
+	 * @return int		  The number of affected rows.
+	 */
+	public function update($table, array $bind, $where = '')
+	{
+		/**
+		 * Build "col = ?" pairs for the statement,
+		 * except for Expr which is treated literally.
+		 */
+		$set = array();
+		foreach ($bind as $col => $val) {
+			if ($val instanceof Expr) {
+				$val = $val->__toString();
+				unset($bind[$col]);
+			} else {
+				$val = '?';
+			}
+			$set[] = $this->quoteIdentifier($col, true) . ' = ' . $val;
+		}
+
+		$where = $this->_whereExpr($where);
+
+		/**
+		 * Build the UPDATE statement
+		 */
+		$sql = "UPDATE "
+			 . $this->quoteIdentifier($table, true)
+			 . ' SET ' . implode(', ', $set)
+			 . (($where) ? " WHERE $where" : '');
+
+		/**
+		 * Execute the statement and return the number of affected rows
+		 */
+		$stmt = $this->query($sql, array_values($bind));
+		$result = $stmt->rowCount();
+		return $result;
+	}
+
+	/**
+	 * Deletes table rows based on a WHERE clause.
+	 *
+	 * @param  mixed		$table The table to update.
+	 * @param  mixed		$where DELETE WHERE clause(s).
+	 * @return int		  The number of affected rows.
+	 */
+	public function delete($table, $where = '')
+	{
+		$where = $this->_whereExpr($where);
+
+		/**
+		 * Build the DELETE statement
+		 */
+		$sql = "DELETE FROM "
+			 . $this->quoteIdentifier($table, true)
+			 . (($where) ? " WHERE $where" : '');
+
+		/**
+		 * Execute the statement and return the number of affected rows
+		 */
+		$stmt = $this->query($sql);
+		$result = $stmt->rowCount();
+		return $result;
+	}
+
+	/**
+	 * Convert an array, string, or Expr object
+	 * into a string to put in a WHERE clause.
+	 *
+	 * @param mixed $where
+	 * @return string
+	 */
+	protected function _whereExpr($where)
+	{
+		if (empty($where)) {
+			return $where;
+		}
+		if (!is_array($where)) {
+			$where = array($where);
+		}
+		foreach ($where as $cond => &$term) {
+			// is $cond an int? (i.e. Not a condition)
+			if (is_int($cond)) {
+				// $term is the full condition
+				if ($term instanceof Expr) {
+					$term = $term->__toString();
+				}
+			} else {
+				// $cond is the condition with placeholder,
+				// and $term is quoted into the condition
+				$term = $this->quoteInto($cond, $term);
+			}
+			$term = '(' . $term . ')';
+		}
+
+		$where = implode(' AND ', $where);
+		return $where;
 	}
 
 	/**
@@ -333,7 +588,17 @@ class Adapter extends mysqli
 	{
 		return new Select($this);
 	}
-	
+
+	/**
+	 * Get the fetch mode.
+	 *
+	 * @return int
+	 */
+	public function getFetchMode()
+	{
+		return $this->_fetchMode;
+	}
+
 	/**
 	 * Safely quotes a value for an SQL statement.
 	 *
@@ -382,13 +647,13 @@ class Adapter extends mysqli
 			return $quotedValue;
 		}
 
-		return parent::real_escape_string($value);
+		return $this->_connection->quote($value);
 	}
 	
 	/**
 	 * 为了解决quote的性能问题，将quote的Array迭代单独提出来
 	 */
-	public function quoteArray(array $array, $type){
+	public function quoteArray($array, $type){
 		foreach ($array as &$val) {
 			$val = $this->quote($val, $type);
 		}
@@ -580,6 +845,7 @@ class Adapter extends mysqli
 	{
 		if ($this->_allowSerialization == false) {
 			/** @see AdapterException */
+			//require_once 'Zend/Db/Adapter/Exception.php';
 			throw new AdapterException(get_class($this) ." is not allowed to be serialized");
 		}
 		$this->_connection = false;
@@ -633,7 +899,17 @@ class Adapter extends mysqli
 	 */
 	public function isConnected()
 	{
-		return ((bool) ($this->_connection instanceof Adapter));
+		return ((bool) ($this->_connection instanceof PDO));
+	}
+
+	/**
+	 * Force the connection to close.
+	 *
+	 * @return void
+	 */
+	public function closeConnection()
+	{
+		$this->_connection = null;
 	}
 
 	/**
@@ -647,8 +923,32 @@ class Adapter extends mysqli
 	{
 		$this->_connect();
 		
-		$stmt = parent::prepare($sql);
+		$stmt = $this->_connection->prepare($sql);
+		$stmt->setFetchMode($this->_fetchMode);
 		return $stmt;
+	}
+
+	/**
+	 * Gets the last ID generated automatically by an IDENTITY/AUTOINCREMENT column.
+	 *
+	 * As a convention, on RDBMS brands that support sequences
+	 * (e.g. Oracle, PostgreSQL, DB2), this method forms the name of a sequence
+	 * from the arguments and returns the last id generated by that sequence.
+	 * On RDBMS brands that support IDENTITY/AUTOINCREMENT columns, this method
+	 * returns the last value generated for such a column, and the table name
+	 * argument is disregarded.
+	 *
+	 * On RDBMS brands that don't support sequences, $tableName and $primaryKey
+	 * are ignored.
+	 *
+	 * @param string $tableName   OPTIONAL Name of table.
+	 * @param string $primaryKey  OPTIONAL Name of primary key column.
+	 * @return string
+	 */
+	public function lastInsertId($tableName = null, $primaryKey = null)
+	{
+		$this->_connect();
+		return $this->_connection->lastInsertId();
 	}
 
 	/**
@@ -677,52 +977,62 @@ class Adapter extends mysqli
 		}
 
 		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
-		// connect to the database if needed
-		$this->_connect();
-
-		// is the $sql a Select object?
-		if ($sql instanceof Select) {
-			if (empty($bind)) {
-				$bind = $sql->getBind();
+			// connect to the database if needed
+			$this->_connect();
+	
+			// is the $sql a Select object?
+			if ($sql instanceof Select) {
+				if (empty($bind)) {
+					$bind = $sql->getBind();
+				}
+	
+				$sql = $sql->assemble();
 			}
-
-			$sql = $sql->assemble();
-		}
-
-		// make sure $bind to an array;
-		// don't use (array) typecasting because
-		// because $bind may be a Expr object
-		if (!is_array($bind)) {
-			$bind = array($bind);
-		}
-		
-		//将结果缓冲当中的结果集读出来
-		Statement::flush();
-
-		// prepare and execute the statement with profiling
-		$stmt = $this->prepare($sql);
-		
-		// 由于取消了Statement，因此将Profiler的控制代码移动到这里
-		// 由于所处的程序位置，省略了$qp->start(),简化了$qp->bindParams()的相关代码
-		if ($this->_profiler === false) {
-			$stmt->execute($bind);
-		}
-		else{
-			$q = $this->_profiler->queryStart($sql);
+	
+			// make sure $bind to an array;
+			// don't use (array) typecasting because
+			// because $bind may be a Expr object
+			if (!is_array($bind)) {
+				$bind = array($bind);
+			}
 			
-			$qp = $this->_profiler->getQueryProfile($q);
-			if ($qp->hasEnded()) {
-				$q = $this->_profiler->queryClone($qp);
-				$qp = $this->_profiler->getQueryProfile($q);
+			//将结果缓冲当中的结果集读出来
+			Statement::flush();
+	
+			// prepare and execute the statement with profiling
+			$stmt = $this->prepare($sql);
+			
+			// 由于取消了Statement，因此将Profiler的控制代码移动到这里
+			// 由于所处的程序位置，省略了$qp->start(),简化了$qp->bindParams()的相关代码
+			if ($this->_profiler === false) {
+				$stmt->execute($bind);
 			}
-			$qp->bindParams($bind);
-	
-			$stmt->execute($bind);
-	
-			$this->_profiler->queryEnd($q);
-		}
+			else{
+				$q = $this->_profiler->queryStart($sql);
+				
+				$qp = $this->_profiler->getQueryProfile($q);
+				if ($qp->hasEnded()) {
+					$q = $this->_profiler->queryClone($qp);
+					$qp = $this->_profiler->getQueryProfile($q);
+				}
+				$qp->bindParams($bind);
 		
-		return $stmt;
+				$stmt->execute($bind);
+		
+				$this->_profiler->queryEnd($q);
+			}
+			
+			// return the results embedded in the prepared statement object
+			$stmt->setFetchMode($this->_fetchMode);
+			return $stmt;
+		//} catch (\mysqli_sql_exception $e) {
+			/**
+			 * @see StatementException
+			 */
+			//require_once 'Zend/Db/Statement/Exception.php';
+			
+			//throw new StatementException($e->getMessage(), $e->getCode(), $e);
+		//}
 	}
 
 	/**
@@ -740,15 +1050,65 @@ class Adapter extends mysqli
 			$sql = $sql->assemble();
 		}
 
-		$affected = parent::query($sql);
+		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
+			$affected = $this->getConnection()->exec($sql);
 
-		if ($affected === false) {
-			throw new AdapterException($this->error);
-		}
+			if ($affected === false) {
+				$errorInfo = $this->getConnection()->errorInfo();
+				/**
+				 * @see AdapterException
+				 */
+				//require_once 'Zend/Db/Adapter/Exception.php';
+				throw new AdapterException($errorInfo[2]);
+			}
 
-		return $affected;
+			return $affected;
+		//} catch (\mysqli_sql_exception $e) {
+			/**
+			 * @see AdapterException
+			 */
+			//require_once 'Zend/Db/Adapter/Exception.php';
+		//	throw new AdapterException($e->getMessage(), $e->getCode(), $e);
+		//}
 	}
 
+	/**
+	 * Begin a transaction.
+	 */
+	protected function _beginTransaction()
+	{
+		$this->_connection->beginTransaction();
+	}
+
+	/**
+	 * Commit a transaction.
+	 */
+	protected function _commit()
+	{
+		$this->_connection->commit();
+	}
+
+	/**
+	 * Roll-back a transaction.
+	 */
+	protected function _rollBack() {
+		$this->_connection->rollBack();
+	}
+
+	/**
+	 * Set the PDO fetch mode.
+	 *
+	 * @todo Support FETCH_CLASS and FETCH_INTO.
+	 *
+	 * @param int $mode A PDO fetch mode.
+	 * @return void
+	 * @throws AdapterException
+	 */
+	public function setFetchMode($mode)
+	{
+		$this->_fetchMode = $mode;
+	}
+	
 	// 以下是PDO_Mysql
 
 	/**
@@ -793,6 +1153,11 @@ class Adapter extends mysqli
 			return;
 		}
 
+		if (!empty($this->_config['charset'])) {
+			$initCommand = "SET NAMES '" . $this->_config['charset'] . "'";
+			$this->_config['driver_options'][PDO::MYSQL_ATTR_INIT_COMMAND] = $initCommand;
+		}
+
 		//以下来自PDO::_connect
 
 		// get the dsn first, because some adapters alter the $_pdoType
@@ -807,26 +1172,30 @@ class Adapter extends mysqli
 		}
 
 		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
-		$this->_connection = new PDO(
-			$dsn,
-			$this->_config['username'],
-			$this->_config['password'],
-			$this->_config['driver_options']
-		);
+			$this->_connection = new PDO(
+				$dsn,
+				$this->_config['username'],
+				$this->_config['password'],
+				$this->_config['driver_options']
+			);
 
-		if ($this->_profiler) $this->_profiler->queryEnd($q);
+			if ($this->_profiler) $this->_profiler->queryEnd($q);
 
-		if (!empty($this->_config['charset'])) {
-			parent::set_charset($this->_config['charset']);
-		}
-		
-		// set the PDO connection to perform case-folding on array keys, or not
-		parent::options(PDO::ATTR_CASE, $this->_caseFolding);
-		
-		// always use exceptions.
-		parent::options(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		
-		// 为了query buffer而强制增加的选项
-		parent::options(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+			// set the PDO connection to perform case-folding on array keys, or not
+			$this->_connection->setAttribute(PDO::ATTR_CASE, $this->_caseFolding);
+			
+			// always use exceptions.
+			$this->_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			
+			// 为了query buffer而强制增加的选项
+			$this->_connection->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+			
+		//} catch (\mysqli_sql_exception $e) {
+			/**
+			 * @see AdapterException
+			 */
+			//require_once 'Zend/Db/Adapter/Exception.php';
+			//throw new AdapterException($e->getMessage(), $e->getCode(), $e);
+		//}
 	}
 }

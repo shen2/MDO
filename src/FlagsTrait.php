@@ -1,5 +1,5 @@
 <?php
-namespace MyPDO;
+namespace MDO;
 
 trait FlagsTrait{
 	protected $_flags;

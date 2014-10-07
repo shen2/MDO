@@ -1,15 +1,15 @@
 <?php
-namespace MyPDO;
+namespace MDO;
 
-trait CountersTrait{    
-    /**
-     * 批量更新计数器
-     * 
-     * @param string|array $columns
-     * @param string|array $primaryKey
-     * @return int 
-     */
-    public static function refreshCounters(){
+trait CountersTrait{	
+	/**
+	 * 批量更新计数器
+	 * 
+	 * @param string|array $columns
+	 * @param string|array $primaryKey
+	 * @return int 
+	 */
+	public static function refreshCounters(){
 		$args = func_get_args();
 		$columns = array_shift($args);
 		
