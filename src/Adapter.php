@@ -63,7 +63,6 @@ class Adapter extends mysqli
 	 */
 	protected $_autoQuoteIdentifiers = true;
 
-
 	/** Weither or not that object can get serialized
 	 *
 	 * @var bool
@@ -77,7 +76,21 @@ class Adapter extends mysqli
 	 * @var bool
 	 */
 	protected $_autoReconnectOnUnserialize = false;
+	
+	protected $_isConnected = false;
 
+	/**
+	 * 尚未发射的语句
+	 * @var array
+	 */
+	protected static $_waitingQueue = array();
+	
+	/**
+	 * 已经发射的语句
+	 * @var array
+	*/
+	protected static $_fetchingQueue = array();
+	
 	/**
 	 * Constructor.
 	 *
@@ -248,7 +261,6 @@ class Adapter extends mysqli
 		return $this;
 	}
 
-
 	/**
 	 * Returns the profiler for this adapter.
 	 *
@@ -266,7 +278,7 @@ class Adapter extends mysqli
 	 */
 	public function beginTransaction()
 	{
-		$this->_connect();
+		if (!$this->_isConnected) $this->_connect();
 		if ($this->_profiler) $q = $this->_profiler->queryStart('begin', Profiler::TRANSACTION);
 		parent::begin_transaction();
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
@@ -280,7 +292,7 @@ class Adapter extends mysqli
 	 */
 	public function commit()
 	{
-		$this->_connect();
+		if (!$this->_isConnected) $this->_connect();
 		if ($this->_profiler) $q = $this->_profiler->queryStart('commit', Profiler::TRANSACTION);
 		parent::commit();
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
@@ -294,7 +306,7 @@ class Adapter extends mysqli
 	 */
 	public function rollBack()
 	{
-		$this->_connect();
+		if (!$this->_isConnected) $this->_connect();
 		if ($this->_profiler) $q = $this->_profiler->queryStart('rollback', Profiler::TRANSACTION);
 		parent::rollback();
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
@@ -394,7 +406,7 @@ class Adapter extends mysqli
 	public function quoteInto($text, $value, $type = null, $count = null)
 	{
 		//这里加入了连接检查之后quote就不需要再连接检查了
-		$this->_connect();
+		if (!$this->_isConnected) $this->_connect();
 		
 		$quotedValue = is_array($value) ? $this->quoteArray($value, $type) : $this->quote($value, $type);
 		
@@ -553,39 +565,13 @@ class Adapter extends mysqli
 	//以下是PDO
 	
 	/**
-	 * Creates a PDO DSN for the adapter from $this->_config settings.
-	 *
-	 * @return string
-	 */
-	protected function _dsn()
-	{
-		// baseline of DSN parts
-		$dsn = $this->_config;
-
-		// don't pass the username, password, charset, persistent and driver_options in the DSN
-		unset($dsn['username']);
-		unset($dsn['password']);
-		unset($dsn['options']);
-		unset($dsn['charset']);
-		unset($dsn['persistent']);
-		unset($dsn['driver_options']);
-
-		// use all remaining parts in the DSN
-		foreach ($dsn as $key => $val) {
-			$dsn[$key] = "$key=$val";
-		}
-
-		return 'mysql:' . implode(';', $dsn);
-	}
-
-	/**
 	 * Test if a connection is active
 	 *
 	 * @return boolean
 	 */
 	public function isConnected()
 	{
-		return ((bool) ($this->_connection instanceof Adapter));
+		return isset($this->thread_id);
 	}
 
 	/**
@@ -597,67 +583,65 @@ class Adapter extends mysqli
 	 */
 	public function prepare($sql)
 	{
-		$this->_connect();
+		if (!$this->_isConnected) $this->_connect();
 		
-		$stmt = parent::prepare($sql);
+		$stmt = new Statement($sql);
 		return $stmt;
 	}
-
+	
 	/**
-	 * Special handling for PDO query().
-	 * All bind parameter names must begin with ':'
+	 * 将buffer中现有的所有结果集都取回来
+	 */
+	public function flushQueue($untilStatement = null){
+		while($this->next_result()){
+			$statement = array_shift($this->_fetchingQueue);
+			$statement->setResult($this->store_result());
+			
+			if ($statement === $untilStatement)
+				return;
+		}
+	}
+	
+	public function waitingUntilxxx($statement){
+		//将当前的语句插到第一个，然后把所有语句一口气打包发送给mysql
+		$keys = array_keys($this->_waitingQueue, $statement);
+		
+		if (count($keys))
+			unset($this->_waitingQueue[$keys[0]]);
+		
+		$sql = $statement->_select->assemble();
+		if (count($this->_waitingQueue))
+			$sql .= ";\n" . implode(";\n", $this->_waitingQueue);
+		
+		implode(";\n", $this->_waitingQueue);
+		
+		$statement->setResult($this->query($sql));
+		
+		$this->_fetchingQueue = $this->_waitingQueue;
+		
+		$this->_waitingQueue = array();
+	}
+	
+	/**
+	 * Special handling for mysqli query().
 	 *
 	 * @param string|Select $sql The SQL statement with placeholders.
-	 * @param array $bind An array of data to bind to the placeholders.
-	 * @return \mysqli_stmt
+	 * @return \mysqli_result
 	 * @throws \mysqli_sql_exception.
 	 */
-	public function query($sql, $bind = array())
+	public function query($sql)
 	{
-		if (empty($bind) && $sql instanceof Select) {
-			$bind = $sql->getBind();
-		}
-
-		if (is_array($bind)) {
-			foreach ($bind as $name => $value) {
-				if (!is_int($name) && !preg_match('/^:/', $name)) {
-					$newName = ":$name";
-					unset($bind[$name]);
-					$bind[$newName] = $value;
-				}
-			}
-		}
-
 		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
 		// connect to the database if needed
-		$this->_connect();
+		if (!$this->_isConnected) $this->_connect();
 
-		// is the $sql a Select object?
-		if ($sql instanceof Select) {
-			if (empty($bind)) {
-				$bind = $sql->getBind();
-			}
-
-			$sql = $sql->assemble();
-		}
-
-		// make sure $bind to an array;
-		// don't use (array) typecasting because
-		// because $bind may be a Expr object
-		if (!is_array($bind)) {
-			$bind = array($bind);
-		}
-		
 		//将结果缓冲当中的结果集读出来
-		Statement::flush();
+		$this->flushQueue();
 
-		// prepare and execute the statement with profiling
-		$stmt = $this->prepare($sql);
-		
 		// 由于取消了Statement，因此将Profiler的控制代码移动到这里
 		// 由于所处的程序位置，省略了$qp->start(),简化了$qp->bindParams()的相关代码
 		if ($this->_profiler === false) {
-			$stmt->execute($bind);
+			$result = parent::query($sql);
 		}
 		else{
 			$q = $this->_profiler->queryStart($sql);
@@ -669,12 +653,12 @@ class Adapter extends mysqli
 			}
 			$qp->bindParams($bind);
 	
-			$stmt->execute($bind);
+			$result = parent::query($sql);
 	
 			$this->_profiler->queryEnd($q);
 		}
 		
-		return $stmt;
+		return $result;
 	}
 
 	/**
@@ -741,30 +725,18 @@ class Adapter extends mysqli
 	 */
 	protected function _connect()
 	{
-		if ($this->_connection) {
-			return;
-		}
-
-		//以下来自PDO::_connect
-
-		// get the dsn first, because some adapters alter the $_pdoType
-		$dsn = $this->_dsn();
-
-		// create PDO connection
-		if ($this->_profiler) $q = $this->_profiler->queryStart('connect', Profiler::CONNECT);
-
-		// add the persistence flag if we find it in our config array
-		if (isset($this->_config['persistent']) && ($this->_config['persistent'] == true)) {
-			$this->_config['driver_options'][PDO::ATTR_PERSISTENT] = true;
-		}
+		if ($this->_profiler) $q = $gthis->_profiler->queryStart('connect', Profiler::CONNECT);
 
 		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
-		$this->_connection = new PDO(
-			$dsn,
-			$this->_config['username'],
-			$this->_config['password'],
-			$this->_config['driver_options']
+		parent::real_connect(
+			(empty($config['persistent']) ? '' : 'p:') . (isset($config['host']) ? $config['host'] : ini_get("mysqli.default_host")),
+			isset($config['username']) ? $config['username'] : ini_get("mysqli.default_user"),
+			isset($config['password']) ? $config['password'] : ini_get("mysqli.default_pw"),
+			isset($config['dbname']) ? $config['dbname'] : "",
+			isset($config['port']) ? $config['port'] : ini_get("mysqli.default_port"),
+			isset($config['socket']) ? $config['socket'] : ini_get("mysqli.default_socket")
 		);
+		$this->_isConnected = true;
 
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
 

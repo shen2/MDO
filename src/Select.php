@@ -1325,7 +1325,7 @@ class Select extends Query
 	 */
 	public function fetchAssoc()
 	{
-		return new Statement($this, \MYSQLI_ASSOC);
+		return (new Statement($this))->setFetchMode(new Iterator\Assoc());
 	}
 
 	/**
@@ -1335,7 +1335,7 @@ class Select extends Query
 	 */
 	public function fetchCol()
 	{
-		return new Statement($this, PDO::FETCH_COLUMN, 0);
+		return (new Statement($this))->setFetchMode(new Iterator\Column(0));
 	}
 
 	/**
@@ -1348,7 +1348,7 @@ class Select extends Query
 	 */
 	public function fetchPairs()
 	{
-		return new Statement($this, PDO::FETCH_KEY_PAIR);
+		return (new Statement($this))->setFetchMode(new Iterator\KeyPair());
 	}
 	
 	/**
@@ -1357,7 +1357,7 @@ class Select extends Query
 	 * @return \mysqli_stmt
 	 */
 	public function fetchFunc($func){
-		return new Statement($this, PDO::FETCH_FUNC, $func);
+		return (new Statement($this))->setFetchMode(new Iterator\Func($func));
 	}
 	
 	/**
@@ -1367,7 +1367,7 @@ class Select extends Query
 	 * @return \mysqli_stmt
 	 */
 	public function fetchClass($class, $ctor_args = array()){
-		return new Statement($this, PDO::FETCH_CLASS, $class, $ctor_args);
+		return (new Statement($this))->setFetchMode(new Iterator\Object($class, $ctor_args));
 	}
 	
 	/**
