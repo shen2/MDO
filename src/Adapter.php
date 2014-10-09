@@ -9,11 +9,6 @@ class Adapter extends mysqli
 	const PROFILER = 'profiler';
 	
 	/**
-	 * Use the CASE_FOLDING constant in the config of a Zend_Db_Adapter.
-	 */
-	const CASE_FOLDING = 'caseFolding';
-	
-	/**
 	 * Use the AUTO_QUOTE_IDENTIFIERS constant in the config of a Zend_Db_Adapter.
 	 */
 	const AUTO_QUOTE_IDENTIFIERS = 'autoQuoteIdentifiers';
@@ -56,17 +51,6 @@ class Adapter extends mysqli
 	 * @var string
 	 */
 	protected $_defaultProfilerClass = 'MDO\Profiler';
-
-	/**
-	 * Specifies the case of column names retrieved in queries
-	 * Options
-	 * PDO::CASE_NATURAL (default)
-	 * PDO::CASE_LOWER
-	 * PDO::CASE_UPPER
-	 *
-	 * @var integer
-	 */
-	protected $_caseFolding = PDO::CASE_NATURAL;
 
 	/**
 	 * Specifies whether the adapter automatically quotes identifiers.
@@ -120,7 +104,6 @@ class Adapter extends mysqli
 		//$this->_checkRequiredOptions($config);
 
 		$options = array(
-			self::CASE_FOLDING		   => $this->_caseFolding,
 			self::AUTO_QUOTE_IDENTIFIERS => $this->_autoQuoteIdentifiers,
 		);
 		$driverOptions = array();
@@ -154,12 +137,6 @@ class Adapter extends mysqli
 		$this->_config = array_merge($this->_config, $config);
 		$this->_config['options'] = $options;
 		$this->_config['driver_options'] = $driverOptions;
-
-
-		// obtain the case setting, if there is one
-		if (array_key_exists(self::CASE_FOLDING, $options)) {
-			$this->_caseFolding = (int) $options[self::CASE_FOLDING];
-		}
 
 		// obtain quoting property if there is one
 		if (array_key_exists(self::AUTO_QUOTE_IDENTIFIERS, $options)) {
@@ -545,31 +522,6 @@ class Adapter extends mysqli
 	}
 
 	/**
-	 * Helper method to change the case of the strings used
-	 * when returning result sets in FETCH_ASSOC and FETCH_BOTH
-	 * modes.
-	 *
-	 * This is not intended to be used by application code,
-	 * but the method must be public so the Statement class
-	 * can invoke it.
-	 *
-	 * @param string $key
-	 * @return string
-	 */
-	public function foldCase($key)
-	{
-		switch ($this->_caseFolding) {
-			case PDO::CASE_LOWER:
-				return strtolower((string) $key);
-			case PDO::CASE_UPPER:
-				return strtoupper((string) $key);
-			case PDO::CASE_NATURAL:
-			default:
-				return (string) $key;
-		}
-	}
-
-	/**
 	 * called when object is getting serialized
 	 * This disconnects the DB object that cant be serialized
 	 *
@@ -819,9 +771,6 @@ class Adapter extends mysqli
 		if (!empty($this->_config['charset'])) {
 			parent::set_charset($this->_config['charset']);
 		}
-		
-		// set the PDO connection to perform case-folding on array keys, or not
-		parent::options(PDO::ATTR_CASE, $this->_caseFolding);
 		
 		// always use exceptions.
 		parent::options(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
