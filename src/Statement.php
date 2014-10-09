@@ -89,63 +89,11 @@ class Statement implements \IteratorAggregate, \Countable
 		return $this;
 	}
 	
-	protected function _fetchAll(){
-		switch ($this->_fetchMode){
-			case self::FETCH_ASSOC:
-				$rowset = new \SplFixedArray($this->_result->num_rows);
-				$index = 0;
-				while($row = $this->_result->fetch_assoc()){
-					$rowset[$index++] = $row;
-				}
-			
-				return $rowset;
-				
-			case self::FETCH_DATAOBJECT:
-				$rowset = new \SplFixedArray($this->_result->num_rows);
-				$index = 0;
-				while($row = $this->_result->fetch_object($this->_fetchArgument, [true, $this->_ctorArgs])){
-					$rowset[$index++] = $row;
-				}
-				
-				return $rowset;
-			
-			case self::FETCH_CLASSFUNC:
-				$rowset = new \SplFixedArray($this->_result->num_rows);
-				$index = 0;
-				
-				$classFunc = $this->_fetchArgument;
-				while($data = $this->_result->fetch_assoc()){
-					$rowClass = $classFunc($data);
-					$rowset[$index] = new $rowClass($data, true, $this->_ctorArgs);
-				}
-				return $rowset;
-
-			case self::FETCH_COLUMN:
-				$rowset = new \SplFixedArray($this->_result->num_rows);
-				$index = 0;
-				while($row = $this->_result->fetch_assoc()){
-					$rowset[$index++] = $row[0];
-				}
-				return $rowset;
-				
-			case self::FETCH_KEY_PAIR:
-				$map = array();
-				while($data = $this->_result->fetch_assoc()){
-					$map[$data[0]] = $data[1];
-				}
-				
-				return $map;
-			
-			default:
-				if (isset($this->_ctorArgs))
-					return self::$_stmt->fetchAll($this->_fetchMode, $this->_fetchArgument, $this->_ctorArgs);
-				
-				if (isset($this->_fetchArgument))
-					return self::$_stmt->fetchAll($this->_fetchMode, $this->_fetchArgument);
-					
-				if (isset($this->_fetchMode))
-					return self::$_stmt->fetchAll($this->_fetchMode);
-		}
+	public function getIterator(){
+		if (!isset($this->_result)) $this->_query();
+		
+		$this->_iterator->setResult($this->_result);
+		return $this->_iterator->fetchAll();
 	}
 	
 	/**

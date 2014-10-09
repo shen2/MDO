@@ -2,8 +2,17 @@
 namespace MDO\Iterator;
 
 class Assoc extends Base{
-	public function current(){
-		$this->_resultOffset ++;
+	protected function _fetch(){
 		return $this->_result->fetch_assoc();
+	}
+	
+	public function fetchAll(){
+		$rowset = new \SplFixedArray($this->_result->num_rows);
+		$index = 0;
+		while($row = $this->_result->fetch_assoc()){
+			$rowset[$index++] = $row;
+		}
+			
+		return $rowset;
 	}
 }

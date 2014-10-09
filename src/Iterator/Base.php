@@ -15,6 +15,8 @@ class Base implements \Iterator{
 	
 	protected $_overahead = false;
 	
+	abstract protected function _fetch();
+	
 	public function __construct($fetchArgument = null, $ctorArgs = null){
 		$this->_fetchArgument = $fetchArgument;
 		$this->_ctorArgs = $ctorArgs;
@@ -24,14 +26,17 @@ class Base implements \Iterator{
 		$this->_result = $result;
 	}
 	
-	abstract public function current();
-	
-	public function next(){
-		$this->_offset++;
-		
+	public function current(){
 		if ($this->_offset !== $this->_resultOffset){
 			$this->_result->data_seek($this->_offset);
 		}
+		
+		$this->_resultOffset ++;
+		return $this->_fetch();
+	}
+	
+	public function next(){
+		$this->_offset++;
 	}
 
 	public function key(){
@@ -46,5 +51,15 @@ class Base implements \Iterator{
 		$this->_offset = 0;
 		$this->_resultOffset = 0;
 		$this->_result->data_seek(0);
+	}
+	
+	public function fetchAll(){
+		$rowset = new \SplFixedArray($this->_result->num_rows);
+		$index = 0;
+		$this->_result->data_seek(0);
+		while($row = $this->_fetch()){
+			$rowset[$index++] = $row;
+		}
+		return $rowset;
 	}
 }

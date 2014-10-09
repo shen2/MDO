@@ -32,4 +32,13 @@ class KeyPair extends Base{
 		
 		$this->_data = null;
 	}
+	
+	public function fetchAll(){
+		$map = array();
+		while($data = $this->_result->fetch_assoc()){
+			$map[$data[0]] = $data[1];
+		}
+		
+		return $map;
+	}
 }
