@@ -139,33 +139,22 @@ class TableSelect extends Select
 	 * @return Statement
 	 */
 	public function fetchAll($fetchMode = null){
-		$fetchArgument = $this->_table;
-		if (property_exists($fetchArgument, 'classFunc') && $fetchArgument::$classFunc){
-			$fetchMode = Statement::FETCH_CLASSFUNC;
-			$fetchArgument = $fetchArgument::$classFunc;
-		}
-		else{
-			$fetchMode = Statement::FETCH_DATAOBJECT;
-		}
-		return new Statement($this, $fetchMode, $fetchArgument, $this->isReadOnly());
+		$iterator = new Iterator\Object($this->_table, [true, $this->isReadOnly()]);
+		return $this->_adapter->newStatement($this)->setIterator($iterator);
 	}
 	
 	
-	public function fetchRow($bind = array(), $fetchMode = null){
+	public function fetchRow($fetchMode = null){
 		$this->_parts[self::LIMIT_COUNT]  = 1;
 		
-		$stmt = $this->_adapter->query($this);
+		$result = $this->_adapter->query($this);
 		
-		if ($stmt->rowCount() == 0){
+		if ($result->num_rows == 0){
 			return null;
 		}
 		
-		$data = $stmt->fetch(\MYSQLI_ASSOC);
 		$rowClass = $this->_table;
 		
-		if (property_exists($rowClass, 'classFunc') && ($classFunc = $rowClass::$classFunc))
-			$rowClass = $classFunc($data);
-		
-		return new $rowClass($data, true, $this->isReadOnly());
+		return new $rowClass($result->fetch_assoc(), true, $this->isReadOnly());
 	}
 }

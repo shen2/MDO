@@ -24,7 +24,6 @@ class Statement implements \IteratorAggregate, \Countable
 	const FETCH_PROPS_LATE = 1048576;
 	
 	const FETCH_DATAOBJECT = 'fetchDataObject';
-	const FETCH_CLASSFUNC = 'fetchClassFunc';
 	
 	/**
 	 * 
@@ -54,18 +53,14 @@ class Statement implements \IteratorAggregate, \Countable
 	public function __construct($connection, $select){
 		$this->_connection = $connection;
 		$this->_select = $select;
-		
-		self::$_waitingQueue[] = $this;
 	}
 	
 	/**
 	 * 
-	 * @param int $fetchMode
-	 * @param mixed $fetchArgument
-	 * @param array $ctorArgs
+	 * @param \Iterator $iterator
 	 */
-	public function setFetchMode($fetchMode, $fetchArgument = null, $ctorArgs = null){
-		$this->_fetchMode = $fetchMode;
+	public function setIterator($iterator){
+		$this->_iterator = $iterator;
 		
 		return $this;
 	}
@@ -117,18 +112,6 @@ class Statement implements \IteratorAggregate, \Countable
 	 */
 	public function fetch(){
 		if (!isset($this->_result)) $this->_query();
-		
-		return $this->_result;
-	}
-	
-	/**
-	 * 获得迭代器，支持foreach
-	 */
-	public function getIterator(){
-		if (!isset($this->_result)) $this->_query();
-		
-		if (is_array($this->_result))
-			return new \ArrayIterator($this->_result);
 		
 		return $this->_result;
 	}

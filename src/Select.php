@@ -1304,12 +1304,9 @@ class Select extends Query
 	 * @param mixed				 $fetchMode Override current fetch mode.
 	 * @return Statement
 	 */
-	public function fetchAll($fetchMode = null)
+	public function fetchAll()
 	{
-		if ($fetchMode === null) {
-			$fetchMode = $this->_adapter->getFetchMode();
-		}
-		return new Statement($this, $fetchMode);
+		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Object('ArrayObject'));
 	}
 
 	/**
@@ -1325,7 +1322,7 @@ class Select extends Query
 	 */
 	public function fetchAssoc()
 	{
-		return (new Statement($this))->setFetchMode(new Iterator\Assoc());
+		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Assoc());
 	}
 
 	/**
@@ -1335,7 +1332,7 @@ class Select extends Query
 	 */
 	public function fetchCol()
 	{
-		return (new Statement($this))->setFetchMode(new Iterator\Column(0));
+		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Column(0));
 	}
 
 	/**
@@ -1348,7 +1345,7 @@ class Select extends Query
 	 */
 	public function fetchPairs()
 	{
-		return (new Statement($this))->setFetchMode(new Iterator\KeyPair());
+		return $this->_adapter->newStatement($this)->setIterator(new Iterator\KeyPair());
 	}
 	
 	/**
@@ -1357,7 +1354,7 @@ class Select extends Query
 	 * @return \mysqli_stmt
 	 */
 	public function fetchFunc($func){
-		return (new Statement($this))->setFetchMode(new Iterator\Func($func));
+		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Func($func));
 	}
 	
 	/**
@@ -1367,7 +1364,7 @@ class Select extends Query
 	 * @return \mysqli_stmt
 	 */
 	public function fetchClass($class, $ctor_args = array()){
-		return (new Statement($this))->setFetchMode(new Iterator\Object($class, $ctor_args));
+		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Object($class, $ctor_args));
 	}
 	
 	/**

@@ -571,7 +571,11 @@ class Adapter extends mysqli
 	 */
 	public function isConnected()
 	{
-		return isset($this->thread_id);
+		return $this->_isConnected;
+	}
+	
+	public function newStatement($sql){
+		$this->_waitingQueue[] = new Statement($this, $sql);
 	}
 
 	/**
@@ -585,7 +589,7 @@ class Adapter extends mysqli
 	{
 		if (!$this->_isConnected) $this->_connect();
 		
-		$stmt = new Statement($sql);
+		$stmt = $this->newStatement($sql);
 		return $stmt;
 	}
 	
