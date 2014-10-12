@@ -45,8 +45,7 @@ class Query {
 
 		// execute the statement and return the number of affected rows
 		$bind = array_values($bind);
-		$stmt = $this->query($sql, $bind);
-		$result = $stmt->rowCount();
+		$result = $this->query($sql, $bind);
 		return $result;
 	}
 	
@@ -113,8 +112,7 @@ class Query {
 		
 		// execute the statement and return the number of affected rows
 		$bind = array_merge(array_values($insertBind), array_values($updateBind));
-		$stmt = $this->query($sql, $bind);
-		$result = $stmt->rowCount();
+		$result = $this->query($sql, $bind);
 		return $result;
 	}
 	
@@ -156,8 +154,7 @@ class Query {
 		/**
 		 * Execute the statement and return the number of affected rows
 		 */
-		$stmt = $this->query($sql, array_values($bind));
-		$result = $stmt->rowCount();
+		$result = $this->query($sql, array_values($bind));
 		return $result;
 	}
 
@@ -182,8 +179,7 @@ class Query {
 		/**
 		 * Execute the statement and return the number of affected rows
 		 */
-		$stmt = $this->query($sql);
-		$result = $stmt->rowCount();
+		$result = $this->query($sql);
 		return $result;
 	}
 

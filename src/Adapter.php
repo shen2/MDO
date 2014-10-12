@@ -558,15 +558,15 @@ class Adapter extends \mysqli
 	{
 		if (!$this->_isConnected) $this->_connect();
 		
-		$stmt = $this->newStatement($sql);
-		return $stmt;
+		return parent::prepare($sql);
 	}
 	
 	/**
 	 * 将buffer中现有的所有结果集都取回来
 	 */
 	public function flushQueue($untilStatement = null){
-		while($this->next_result()){
+		while($this->more_results()){
+			$this->next_result();
 			$statement = array_shift($this->_fetchingQueue);
 			$statement->setResult($this->store_result());
 			
@@ -598,22 +598,71 @@ class Adapter extends \mysqli
 	 * Special handling for mysqli query().
 	 *
 	 * @param string|Select $sql The SQL statement with placeholders.
+	 * @param array $bind An array of data to bind to the placeholders.
 	 * @return \mysqli_result
 	 * @throws \mysqli_sql_exception.
 	 */
-	public function query($sql)
+	public function query($sql, $bind = array())
 	{
 		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
 		// connect to the database if needed
 		if (!$this->_isConnected) $this->_connect();
 
+		// is the $sql a Select object?
+		if ($sql instanceof Select) {
+			if (empty($bind)) {
+				$bind = $sql->getBind();
+			}
+		
+			$sql = $sql->assemble();
+		}
+		
+		// make sure $bind to an array;
+		// don't use (array) typecasting because
+		// because $bind may be a Expr object
+		if (!is_array($bind)) {
+			$bind = array($bind);
+		}
+		
 		//将结果缓冲当中的结果集读出来
 		$this->flushQueue();
-
+		
+		$stmt = parent::stmt_init();	// TODO 以后可以派生mysqli_stmt
+		$stmt->prepare($sql);
+		if ($stmt === false)
+			throw new Exception('Failed in preparing SQL: ' . $sql);
+		
+		if (!empty($bind)){
+			$types = '';
+			foreach($bind as $val){
+				switch (gettype($val)){
+					case 'string':
+						$types .= 's';
+						break;
+					case 'integer':
+						$types .= 'i';
+						break;
+					case 'double':
+						$types .= 'd';
+						break;
+					case 'boolean':
+					case 'object':
+					case 'array':
+					case 'resource':
+					case 'NULL':
+					case "unknown type":
+					default:
+						$types .= 's';
+				}
+			}
+			$stmt->bind_param($types, $bind);
+		}
+		
 		// 由于取消了Statement，因此将Profiler的控制代码移动到这里
 		// 由于所处的程序位置，省略了$qp->start(),简化了$qp->bindParams()的相关代码
 		if ($this->_profiler === false) {
-			$result = parent::query($sql);
+			$stmt->execute();
+			$result = $stmt->get_result();
 		}
 		else{
 			$q = $this->_profiler->queryStart($sql);
@@ -623,9 +672,10 @@ class Adapter extends \mysqli
 				$q = $this->_profiler->queryClone($qp);
 				$qp = $this->_profiler->getQueryProfile($q);
 			}
-			//$qp->bindParams($bind);
-	
-			$result = parent::query($sql);
+			$qp->bindParams($bind);
+
+			$stmt->execute();
+			$result = $stmt->get_result();
 	
 			$this->_profiler->queryEnd($q);
 		}
