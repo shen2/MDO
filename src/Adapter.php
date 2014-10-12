@@ -586,9 +586,8 @@ class Adapter extends \mysqli
 		if (count($this->_waitingQueue))
 			$sql .= ";\n" . implode(";\n", $this->_waitingQueue);
 		
-		implode(";\n", $this->_waitingQueue);
-		
-		$statement->setResult($this->query($sql));
+		$this->multi_query($sql);
+		$statement->setResult($this->store_result());
 		
 		$this->_fetchingQueue = $this->_waitingQueue;
 		
