@@ -623,7 +623,7 @@ class Adapter extends \mysqli
 				$q = $this->_profiler->queryClone($qp);
 				$qp = $this->_profiler->getQueryProfile($q);
 			}
-			$qp->bindParams($bind);
+			//$qp->bindParams($bind);
 	
 			$result = parent::query($sql);
 	
@@ -665,7 +665,7 @@ class Adapter extends \mysqli
 	 */
 	protected function _connect()
 	{
-		if ($this->_profiler) $q = $gthis->_profiler->queryStart('connect', Profiler::CONNECT);
+		if ($this->_profiler) $q = $this->_profiler->queryStart('connect', Profiler::CONNECT);
 
 		$config = $this->_config;
 		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
