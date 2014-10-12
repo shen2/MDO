@@ -1,6 +1,6 @@
 {
-	"name": "shen2/mypdo",
-	"description": "A php asynchronous library for mysql(PDO)",
+	"name": "shen2/mdo",
+	"description": "A php asynchronous library for mysql (based on mysqli and mysqlnd driver)",
 	"minimum-stability": "stable",
 	"license": "MIT",
 	"authors": [

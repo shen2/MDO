@@ -139,7 +139,7 @@ class TableSelect extends Select
 	 * @return Statement
 	 */
 	public function fetchAll($fetchMode = null){
-		$iterator = new Iterator\Object($this->_table, [true, $this->isReadOnly()]);
+		$iterator = new Iterator\DataObject($this->_table, [true, $this->isReadOnly()]);
 		return $this->_adapter->newStatement($this)->setIterator($iterator);
 	}
 	

@@ -4,13 +4,12 @@ namespace MDO\Iterator;
 class KeyPair extends Base{
 	/**
 	 * 
-	 * @var string
+	 * @var array
 	 */
-	protected $_key;
+	protected $_data;
 	
 	protected function _fetch(){
-		$this->_resultOffset ++;
-		$this->_data = $this->_result->fetch_array();
+		$this->_data = $this->_result->fetch_array(\MYSQLI_NUM);
 	}
 	
 	public function current(){
@@ -35,7 +34,7 @@ class KeyPair extends Base{
 	
 	public function fetchAll(){
 		$map = array();
-		while($data = $this->_result->fetch_assoc()){
+		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
 			$map[$data[0]] = $data[1];
 		}
 		

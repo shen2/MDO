@@ -12,7 +12,7 @@ class Assoc extends Base{
 		while($row = $this->_result->fetch_assoc()){
 			$rowset[$index++] = $row;
 		}
-			
+		
 		return $rowset;
 	}
 }

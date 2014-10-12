@@ -3,31 +3,9 @@ namespace MDO;
 
 class Statement implements \IteratorAggregate, \Countable
 {
-	/* copyed from PDO */
-	const FETCH_LAZY = 1;
-	const FETCH_ASSOC = 2;
-	const FETCH_NUM = 3;
-	const FETCH_BOTH = 4;
-	const FETCH_OBJ = 5;
-	const FETCH_BOUND = 6;
-	const FETCH_COLUMN = 7;
-	const FETCH_CLASS = 8;
-	const FETCH_INTO = 9;
-	const FETCH_FUNC = 10;
-	const FETCH_NAMED = 11;
-	const FETCH_KEY_PAIR = 12;
-	
-	const FETCH_GROUP = 65536;
-	const FETCH_UNIQUE = 196608;
-	const FETCH_CLASSTYPE = 262144;
-	const FETCH_SERIALIZE = 524288;
-	const FETCH_PROPS_LATE = 1048576;
-	
-	const FETCH_DATAOBJECT = 'fetchDataObject';
-	
 	/**
 	 * 
-	 * @var \mysqli
+	 * @var Adapter
 	 */
 	protected $_connection = null;
 	
@@ -37,9 +15,13 @@ class Statement implements \IteratorAggregate, \Countable
 	 */
 	protected $_select;
 	
-	protected $_fetchMode;
+	/**
+	 * 
+	 * @var Iterator\Base
+	 */
+	protected $_iterator;
 	
-	protected $_result = false;
+	protected $_result = null;
 	
 	/**
 	 * 构造函数
@@ -57,7 +39,7 @@ class Statement implements \IteratorAggregate, \Countable
 	
 	/**
 	 * 
-	 * @param \Iterator $iterator
+	 * @param Iterator\Base $iterator
 	 */
 	public function setIterator($iterator){
 		$this->_iterator = $iterator;
@@ -91,18 +73,22 @@ class Statement implements \IteratorAggregate, \Countable
 		return $this->_iterator->fetchAll();
 	}
 	
+	public function assemble(){
+		return $this->_select->assemble();
+	}
+	
 	/**
 	 * 
 	 * @throws \mysqli_sql_exception
 	 */
 	public function _query(){
 		//如果已经在结果缓存中，则搜寻结果集
-		$this->_connection->flushQueue($statement);
+		$this->_connection->flushQueue($this);
 		
 		if (isset($this->_result))
 			return;
 		
-		$this->_connection->waitingUntilStatement();
+		$this->_connection->waitingUntilStatement($this);
 	}
 	
 	/**

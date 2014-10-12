@@ -1,7 +1,7 @@
 <?php
 namespace MDO\Iterator;
 
-class Base implements \Iterator{
+abstract class Base implements \Iterator{
 	
 	protected $_result;
 	

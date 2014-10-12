@@ -1,7 +1,7 @@
 <?php
 namespace MDO;
 
-class Adapter extends mysqli
+class Adapter extends \mysqli
 {
 	/**
 	 * Use the PROFILER constant in the config of a Zend_Db_Adapter.
@@ -22,13 +22,6 @@ class Adapter extends mysqli
 	 * Use the AUTO_RECONNECT_ON_UNSERIALIZE constant in the config of a Zend_Db_Adapter.
 	 */
 	const AUTO_RECONNECT_ON_UNSERIALIZE = 'autoReconnectOnUnserialize';
-	
-	/**
-	 * Use the INT_TYPE, BIGINT_TYPE, and FLOAT_TYPE with the quote() method.
-	 */
-	const INT_TYPE = 0;
-	const BIGINT_TYPE = 1;
-	const FLOAT_TYPE  = 2;
 	
 	/**
 	 * User-provided configuration
@@ -77,19 +70,23 @@ class Adapter extends mysqli
 	 */
 	protected $_autoReconnectOnUnserialize = false;
 	
+	/**
+	 * 
+	 * @var bool
+	 */
 	protected $_isConnected = false;
 
 	/**
 	 * 尚未发射的语句
 	 * @var array
 	 */
-	protected static $_waitingQueue = array();
+	protected $_waitingQueue = array();
 	
 	/**
 	 * 已经发射的语句
 	 * @var array
 	*/
-	protected static $_fetchingQueue = array();
+	protected $_fetchingQueue = array();
 	
 	/**
 	 * Constructor.
@@ -114,6 +111,7 @@ class Adapter extends mysqli
 	 */
 	public function __construct($config)
 	{
+		parent::init();
 		//$this->_checkRequiredOptions($config);
 
 		$options = array(
@@ -330,10 +328,9 @@ class Adapter extends mysqli
 	 * and then returned as a comma-separated string.
 	 *
 	 * @param mixed $value The value to quote.
-	 * @param mixed $type  OPTIONAL the SQL datatype name, or constant, or null.
 	 * @return mixed An SQL-safe quoted value (or string of separated values).
 	 */
-	public function quote($value, $type = null)
+	public function quote($value)
 	{
 		if ($value instanceof Select) {
 			return '(' . $value->assemble() . ')';
@@ -341,34 +338,6 @@ class Adapter extends mysqli
 
 		if ($value instanceof Expr) {
 			return $value->__toString();
-		}
-
-		if ($type !== null && array_key_exists($type = strtoupper($type), $this->_numericDataTypes)) {
-			$quotedValue = '0';
-			switch ($this->_numericDataTypes[$type]) {
-				case self::INT_TYPE: // 32-bit integer
-					$quotedValue = (string) intval($value);
-					break;
-				case self::BIGINT_TYPE: // 64-bit integer
-					// ANSI SQL-style hex literals (e.g. x'[\dA-F]+')
-					// are not supported here, because these are string
-					// literals, not numeric literals.
-					if (preg_match('/^(
-						  [+-]?				  # optional sign
-						  (?:
-							0[Xx][\da-fA-F]+	 # ODBC-style hexadecimal
-							|\d+				 # decimal or octal, or MySQL ZEROFILL decimal
-							(?:[eE][+-]?\d+)?	# optional exponent on decimals or octals
-						  )
-						)/x',
-						(string) $value, $matches)) {
-						$quotedValue = $matches[1];
-					}
-					break;
-				case self::FLOAT_TYPE: // float or decimal
-					$quotedValue = sprintf('%F', $value);
-			}
-			return $quotedValue;
 		}
 
 		return parent::real_escape_string($value);
@@ -403,12 +372,12 @@ class Adapter extends mysqli
 	 * @param integer $count OPTIONAL count of placeholders to replace
 	 * @return string An SQL-safe quoted value placed into the original text.
 	 */
-	public function quoteInto($text, $value, $type = null, $count = null)
+	public function quoteInto($text, $value, $count = null)
 	{
 		//这里加入了连接检查之后quote就不需要再连接检查了
 		if (!$this->_isConnected) $this->_connect();
 		
-		$quotedValue = is_array($value) ? $this->quoteArray($value, $type) : $this->quote($value, $type);
+		$quotedValue = is_array($value) ? $this->quoteArray($value) : $this->quote($value);
 		
 		if ($count === null) {
 			return str_replace('?', $quotedValue, $text);
@@ -575,7 +544,7 @@ class Adapter extends mysqli
 	}
 	
 	public function newStatement($sql){
-		$this->_waitingQueue[] = new Statement($this, $sql);
+		return $this->_waitingQueue[] = new Statement($this, $sql);
 	}
 
 	/**
@@ -606,14 +575,14 @@ class Adapter extends mysqli
 		}
 	}
 	
-	public function waitingUntilxxx($statement){
+	public function waitingUntilStatement($statement){
 		//将当前的语句插到第一个，然后把所有语句一口气打包发送给mysql
 		$keys = array_keys($this->_waitingQueue, $statement);
 		
 		if (count($keys))
 			unset($this->_waitingQueue[$keys[0]]);
 		
-		$sql = $statement->_select->assemble();
+		$sql = $statement->assemble();
 		if (count($this->_waitingQueue))
 			$sql .= ";\n" . implode(";\n", $this->_waitingQueue);
 		
@@ -689,38 +658,6 @@ class Adapter extends mysqli
 		return $affected;
 	}
 
-	// 以下是PDO_Mysql
-
-	/**
-	 * Keys are UPPERCASE SQL datatypes or the constants
-	 * INT_TYPE, BIGINT_TYPE, or FLOAT_TYPE.
-	 *
-	 * Values are:
-	 * 0 = 32-bit integer
-	 * 1 = 64-bit integer
-	 * 2 = float or decimal
-	 *
-	 * @var array Associative array of datatypes to values 0, 1, or 2.
-	 */
-	protected $_numericDataTypes = array(
-		self::INT_TYPE	=> self::INT_TYPE,
-		self::BIGINT_TYPE => self::BIGINT_TYPE,
-		self::FLOAT_TYPE  => self::FLOAT_TYPE,
-		'INT'				=> self::INT_TYPE,
-		'INTEGER'			=> self::INT_TYPE,
-		'MEDIUMINT'		  => self::INT_TYPE,
-		'SMALLINT'		   => self::INT_TYPE,
-		'TINYINT'			=> self::INT_TYPE,
-		'BIGINT'			 => self::BIGINT_TYPE,
-		'SERIAL'			 => self::BIGINT_TYPE,
-		'DEC'				=> self::FLOAT_TYPE,
-		'DECIMAL'			=> self::FLOAT_TYPE,
-		'DOUBLE'			 => self::FLOAT_TYPE,
-		'DOUBLE PRECISION'   => self::FLOAT_TYPE,
-		'FIXED'			  => self::FLOAT_TYPE,
-		'FLOAT'			  => self::FLOAT_TYPE
-	);
-
 	/**
 	 * Creates a PDO object and connects to the database.
 	 *
@@ -731,6 +668,7 @@ class Adapter extends mysqli
 	{
 		if ($this->_profiler) $q = $gthis->_profiler->queryStart('connect', Profiler::CONNECT);
 
+		$config = $this->_config;
 		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
 		parent::real_connect(
 			(empty($config['persistent']) ? '' : 'p:') . (isset($config['host']) ? $config['host'] : ini_get("mysqli.default_host")),
@@ -747,11 +685,5 @@ class Adapter extends mysqli
 		if (!empty($this->_config['charset'])) {
 			parent::set_charset($this->_config['charset']);
 		}
-		
-		// always use exceptions.
-		parent::options(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		
-		// 为了query buffer而强制增加的选项
-		parent::options(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
 	}
 }

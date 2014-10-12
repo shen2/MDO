@@ -516,7 +516,7 @@ abstract class DataObject extends \ArrayObject
 					$columnName = static::$_db->quoteIdentifier($keyNames[$keyPosition], true);
 					$whereAndTerms[] = static::$_db->quoteInto(
 						$tableName . '.' . $columnName . ' = ?',
-						$keyValue);//, $type FIXME 这个暂时无解，通通当成字符串处理吧
+						$keyValue);
 				}
 				$whereOrTerms[] = '(' . implode(' AND ', $whereAndTerms) . ')';
 			}
@@ -1009,16 +1009,13 @@ abstract class DataObject extends \ArrayObject
 		$where = array();
 		
 		$primaryKey = $this->_getPrimaryKey($useDirty);
-		//$info = static::info();
-		//$metadata = $info[self::METADATA]; FIXME 这个暂时无解
 
 		// retrieve recently updated row using primary keys
 		$where = array();
 		foreach ($primaryKey as $column => $value) {
 			$tableName = static::$_db->quoteIdentifier(static::$_name, true);
-			//$type = $metadata[$column]['DATA_TYPE'];
 			$columnName = static::$_db->quoteIdentifier($column, true);
-			$where[] = static::$_db->quoteInto("{$tableName}.{$columnName} = ?", $value);//, $type FIXME 这个暂时无解
+			$where[] = static::$_db->quoteInto("{$tableName}.{$columnName} = ?", $value);
 		}
 		return $where;
 	}

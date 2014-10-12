@@ -495,10 +495,10 @@ class Select extends Query
 	 * @param int	  $type  OPTIONAL The type of the given value
 	 * @return Select This Select object.
 	 */
-	public function having($cond, $value = null, $type = null)
+	public function having($cond, $value = null)
 	{
 		if ($value !== null) {
-			$cond = $this->_adapter->quoteInto($cond, $value, $type);
+			$cond = $this->_adapter->quoteInto($cond, $value);
 		}
 
 		if ($this->_parts[self::HAVING]) {
@@ -522,10 +522,10 @@ class Select extends Query
 	 *
 	 * @see having()
 	 */
-	public function orHaving($cond, $value = null, $type = null)
+	public function orHaving($cond, $value = null)
 	{
 		if ($value !== null) {
-			$cond = $this->_adapter->quoteInto($cond, $value, $type);
+			$cond = $this->_adapter->quoteInto($cond, $value);
 		}
 
 		if ($this->_parts[self::HAVING]) {
@@ -950,7 +950,7 @@ class Select extends Query
 		}
 
 		if ($value !== null) {
-			$condition = $this->_adapter->quoteInto($condition, $value, $type);
+			$condition = $this->_adapter->quoteInto($condition, $value);
 		}
 
 		$cond = "";
@@ -1306,7 +1306,7 @@ class Select extends Query
 	 */
 	public function fetchAll()
 	{
-		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Object('ArrayObject'));
+		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Assoc());
 	}
 
 	/**
@@ -1318,7 +1318,7 @@ class Select extends Query
 	 * rows with duplicate values in the first column will
 	 * overwrite previous data.
 	 *
-	 * @return \mysqli_stmt
+	 * @return Statement
 	 */
 	public function fetchAssoc()
 	{
@@ -1328,7 +1328,7 @@ class Select extends Query
 	/**
 	 * Fetches the first column of all SQL result rows as an array.
 	 *
-	 * @return \mysqli_stmt
+	 * @return Statement
 	 */
 	public function fetchCol()
 	{
@@ -1341,7 +1341,7 @@ class Select extends Query
 	 * The first column is the key, the second column is the
 	 * value.
 	 *
-	 * @return \mysqli_stmt
+	 * @return Statement
 	 */
 	public function fetchPairs()
 	{
@@ -1351,7 +1351,7 @@ class Select extends Query
 	/**
 	 * 以回调函数的方式获取
 	 * @param string $func
-	 * @return \mysqli_stmt
+	 * @return Statement
 	 */
 	public function fetchFunc($func){
 		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Func($func));
@@ -1361,7 +1361,7 @@ class Select extends Query
 	 * 以自定义类的方式获取
 	 * @param string $class
 	 * @param array $ctor_args
-	 * @return \mysqli_stmt
+	 * @return Statement
 	 */
 	public function fetchClass($class, $ctor_args = array()){
 		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Object($class, $ctor_args));
@@ -1371,41 +1371,27 @@ class Select extends Query
 	 * Fetches the first row of the SQL result.
 	 * Uses the current fetchMode for the adapter.
 	 *
-	 * @param mixed $bind Data to bind into SELECT placeholders.
 	 * @param mixed				 $fetchMode Override current fetch mode.
 	 * @return array
 	 */
-	public function fetchRow($bind = array(), $fetchMode = null)
+	public function fetchRow($fetchMode = null)
 	{
 		if ($fetchMode === null) {
 			$fetchMode = $this->_adapter->getFetchMode();
 		}
-		$stmt = $this->_adapter->query($this, $bind);
-		return $stmt->fetch($fetchMode);
+		$result = $this->_adapter->query($this);
+		return $result->fetch_assoc();
 	}
 	
 	/**
 	 * Fetches the first column of the first row of the SQL result.
 	 *
-	 * @param mixed $bind Data to bind into SELECT placeholders.
 	 * @return string
 	 */
-	public function fetchOne($bind = array())
+	public function fetchOne()
 	{
-		$stmt = $this->_adapter->query($this, $bind);
-		return $stmt->fetchColumn(0);
+		$result = $this->_adapter->query($this);
+		$row = $result->fetch_array(\MYSQLI_NUM);
+		return $row === null ? null : $row[0];
 	}
-	
-	/*	fetch方法系列结束，下面是我增加的新方法	*/
-	
-	/**
-	 * 将数据存入一个已经存在的对象
-	 * @param mixed $obj
-	 * @param array $bind
-	 */
-	public function fetchInto($obj, $bind = array()){
-		$stmt = $this->_adapter->query($this, $bind);
-		return $stmt->fetch(PDO::FETCH_INTO, $obj);
-	}
-	
 }
