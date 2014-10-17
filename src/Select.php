@@ -1127,6 +1127,15 @@ class Select extends Query
 	}
 	
 	/**
+	 * 
+	 * @return Statement
+	 */
+	public function fetchMap()
+	{
+		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Map($this->_table, [true, $this->isReadOnly()]));
+	}
+	
+	/**
 	 * 以回调函数的方式获取
 	 * @param string $func
 	 * @return Statement

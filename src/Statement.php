@@ -66,11 +66,20 @@ class Statement implements \IteratorAggregate, \Countable
 		return $this;
 	}
 	
+	/**
+	 * 
+	 * @return \Iterator
+	 */
 	public function getIterator(){
 		if (!isset($this->_result)) $this->_query();
 		
 		$this->_iterator->setResult($this->_result);
-		return $this->_iterator->fetchAll();
+		$all = $this->_iterator->fetchAll();
+		
+		if (is_array($all))
+			return new \ArrayIterator($all);
+		
+		return $all;
 	}
 	
 	public function assemble(){
