@@ -517,11 +517,12 @@ class Select extends Query
 		 * Ensures that only columns from the primary DataObject are returned in the result.
 		 */
 		if (isset($this->_table) && count($this->_parts[self::UNION]) == 0) {
-			$fields  = $this->_parts[Select::COLUMNS];
+			$table = $this->_table;
+			$info = $table::info();
 			
 			// If no fields are specified we assume all fields from primary table
-			if (!count($fields)) {
-				$this->joinInner($table::$_name, null, self::SQL_WILDCARD, $table::$_schema);
+			if (empty($this->_parts[Select::COLUMNS])) {
+				$this->joinInner($info[DataObject::NAME], null, self::SQL_WILDCARD, $info[DataObject::SCHEMA]);
 			}
 		}
 		

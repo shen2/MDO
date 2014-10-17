@@ -288,11 +288,11 @@ class Adapter extends \mysqli
 	 *
 	 * @return Adapter
 	 */
-	public function commit()
+	public function commit($flags = NULL, $name = NULL)
 	{
 		if (!$this->_isConnected) $this->_connect();
 		if ($this->_profiler) $q = $this->_profiler->queryStart('commit', Profiler::TRANSACTION);
-		parent::commit();
+		parent::commit($flags, $name);
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
 		return $this;
 	}
@@ -302,11 +302,11 @@ class Adapter extends \mysqli
 	 *
 	 * @return Adapter
 	 */
-	public function rollBack()
+	public function rollBack($flags = NULL, $name = NULL)
 	{
 		if (!$this->_isConnected) $this->_connect();
 		if ($this->_profiler) $q = $this->_profiler->queryStart('rollback', Profiler::TRANSACTION);
-		parent::rollback();
+		parent::rollback($flags, $name);
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
 		return $this;
 	}
