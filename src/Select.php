@@ -21,51 +21,12 @@ namespace MDO;
  */
 class Select extends Query
 {
-	const DISTINCT	   = 'distinct';
-	const COLUMNS		= 'columns';
-	const FROM		   = 'from';
-	const UNION		  = 'union';
-	const INDEX		  = 'index';
-	const WHERE		  = 'where';
-	const GROUP		  = 'group';
-	const HAVING		 = 'having';
-	const ORDER		  = 'order';
-	const LIMIT_COUNT	= 'limitcount';
-	const LIMIT_OFFSET   = 'limitoffset';
-	const FOR_UPDATE	 = 'forupdate';
-
 	const INNER_JOIN	 = 'inner join';
 	const LEFT_JOIN	  = 'left join';
 	const RIGHT_JOIN	 = 'right join';
 	const FULL_JOIN	  = 'full join';
 	const CROSS_JOIN	 = 'cross join';
 	const NATURAL_JOIN   = 'natural join';
-
-	const SQL_WILDCARD   = '*';
-	const SQL_SELECT	 = 'SELECT';
-	const SQL_UNION	  = 'UNION';
-	const SQL_UNION_ALL  = 'UNION ALL';
-	const SQL_FROM	   = 'FROM';
-	const SQL_WHERE	  = 'WHERE';
-	const SQL_FORCE_INDEX= 'FORCE INDEX';
-	const SQL_DISTINCT   = 'DISTINCT';
-	const SQL_GROUP_BY   = 'GROUP BY';
-	const SQL_ORDER_BY   = 'ORDER BY';
-	const SQL_HAVING	 = 'HAVING';
-	const SQL_FOR_UPDATE = 'FOR UPDATE';
-	const SQL_AND		= 'AND';
-	const SQL_AS		 = 'AS';
-	const SQL_OR		 = 'OR';
-	const SQL_ON		 = 'ON';
-	const SQL_ASC		= 'ASC';
-	const SQL_DESC	   = 'DESC';
-	
-	/**
-	 * Bind variables for query
-	 *
-	 * @var array
-	 */
-	protected $_bind = array();
 
 	/**
 	 * The initial values for the $_parts array.
@@ -74,7 +35,7 @@ class Select extends Query
 	 *
 	 * @var array
 	 */
-	protected static $_partsInit = array(
+	protected $_parts = array(
 		self::DISTINCT	 => false,
 		self::COLUMNS	  => array(),
 		self::UNION		=> array(),
@@ -114,14 +75,6 @@ class Select extends Query
 	);
 
 	/**
-	 * The component parts of a SELECT statement.
-	 * Initialized to the $_partsInit array in the constructor.
-	 *
-	 * @var array
-	 */
-	protected $_parts = array();
-
-	/**
 	 * Class constructor
 	 *
 	 * @param Adapter $adapter
@@ -129,30 +82,6 @@ class Select extends Query
 	public function __construct(Adapter $adapter)
 	{
 		$this->_adapter = $adapter;
-		$this->_parts = self::$_partsInit;
-	}
-
-	/**
-	 * Get bind variables
-	 *
-	 * @return array
-	 */
-	public function getBind()
-	{
-		return $this->_bind;
-	}
-
-	/**
-	 * Set bind variables
-	 *
-	 * @param mixed $bind
-	 * @return Select
-	 */
-	public function bind($bind)
-	{
-		$this->_bind = $bind;
-
-		return $this;
 	}
 
 	/**
@@ -404,64 +333,6 @@ class Select extends Query
 	}
 
 	/**
-	 * Adds a WHERE condition to the query by AND.
-	 *
-	 * If a value is passed as the second param, it will be quoted
-	 * and replaced into the condition wherever a question-mark
-	 * appears. Array values are quoted and comma-separated.
-	 *
-	 * <code>
-	 * // simplest but non-secure
-	 * $select->where("id = $id");
-	 *
-	 * // secure (ID is quoted but matched anyway)
-	 * $select->where('id = ?', $id);
-	 *
-	 * // alternatively, with named binding
-	 * $select->where('id = :id');
-	 * </code>
-	 *
-	 * Note that it is more correct to use named bindings in your
-	 * queries for values other than strings. When you use named
-	 * bindings, don't forget to pass the values when actually
-	 * making a query:
-	 *
-	 * <code>
-	 * $db->fetchAll($select, array('id' => 5));
-	 * </code>
-	 *
-	 * @param string   $cond  The WHERE condition.
-	 * @param mixed	$value OPTIONAL The value to quote into the condition.
-	 * @param int	  $type  OPTIONAL The type of the given value
-	 * @return Select This Select object.
-	 */
-	public function where($cond, $value = null, $type = null)
-	{
-		$this->_parts[self::WHERE][] = $this->_where($cond, $value, $type, true);
-
-		return $this;
-	}
-
-	/**
-	 * Adds a WHERE condition to the query by OR.
-	 *
-	 * Otherwise identical to where().
-	 *
-	 * @param string   $cond  The WHERE condition.
-	 * @param mixed	$value OPTIONAL The value to quote into the condition.
-	 * @param int	  $type  OPTIONAL The type of the given value
-	 * @return Select This Select object.
-	 *
-	 * @see where()
-	 */
-	public function orWhere($cond, $value = null, $type = null)
-	{
-		$this->_parts[self::WHERE][] = $this->_where($cond, $value, $type, false);
-
-		return $this;
-	}
-
-	/**
 	 * Adds grouping to the query.
 	 *
 	 * @param  array|string $spec The column(s) to group by.
@@ -635,68 +506,33 @@ class Select extends Query
 	}
 
 	/**
-	 * Executes the current select object and returns the result
-	 *
-	 * @param integer $fetchMode OPTIONAL
-	 * @param  mixed  $bind An array of data to bind to the placeholders.
-	 * @return \mysqli_stmt
-	 */
-	public function query($fetchMode = null, $bind = array())
-	{
-		if (!empty($bind)) {
-			$this->bind($bind);
-		}
-
-		$stmt = $this->_adapter->query($this);
-		if ($fetchMode == null) {
-			$fetchMode = $this->_adapter->getFetchMode();
-		}
-		$stmt->setFetchMode($fetchMode);
-		return $stmt;
-	}
-
-	/**
 	 * Converts this object to an SQL SELECT string.
 	 *
 	 * @return string|null This object as a SELECT string. (or null if a string cannot be produced.)
 	 */
 	public function assemble()
 	{
+		/**
+		 * Performs a validation on the select query before passing back to the parent class.
+		 * Ensures that only columns from the primary DataObject are returned in the result.
+		 */
+		if (isset($this->_table) && count($this->_parts[self::UNION]) == 0) {
+			$fields  = $this->_parts[Select::COLUMNS];
+			
+			// If no fields are specified we assume all fields from primary table
+			if (!count($fields)) {
+				$this->joinInner($table::$_name, null, self::SQL_WILDCARD, $table::$_schema);
+			}
+		}
+		
 		$sql = self::SQL_SELECT;
-		foreach (array_keys(self::$_partsInit) as $part) {
+		foreach (array_keys($this->_parts) as $part) {
 			$method = '_render' . ucfirst($part);
 			if (method_exists($this, $method)) {
-				$sql = $this->$method($sql);
+				$sql .= $this->$method();
 			}
 		}
 		return $sql;
-	}
-
-	/**
-	 * Clear parts of the Select object, or an individual part.
-	 *
-	 * @param string $part OPTIONAL
-	 * @return Select
-	 */
-	public function reset($part = null)
-	{
-		if ($part == null) {
-			$this->_parts = self::$_partsInit;
-		} else if (array_key_exists($part, self::$_partsInit)) {
-			$this->_parts[$part] = self::$_partsInit[$part];
-		}
-		return $this;
-	}
-
-	/**
-	 * Gets the Adapter for this
-	 * particular Select object.
-	 *
-	 * @return Adapter
-	 */
-	public function getAdapter()
-	{
-		return $this->_adapter;
 	}
 
 	/**
@@ -935,37 +771,6 @@ class Select extends Query
 	}
 
 	/**
-	 * Internal function for creating the where clause
-	 *
-	 * @param string   $condition
-	 * @param mixed	$value  optional
-	 * @param string   $type   optional
-	 * @param boolean  $bool  true = AND, false = OR
-	 * @return string  clause
-	 */
-	protected function _where($condition, $value = null, $type = null, $bool = true)
-	{
-		if (count($this->_parts[self::UNION])) {
-			throw new SelectException("Invalid use of where clause with " . self::SQL_UNION);
-		}
-
-		if ($value !== null) {
-			$condition = $this->_adapter->quoteInto($condition, $value);
-		}
-
-		$cond = "";
-		if ($this->_parts[self::WHERE]) {
-			if ($bool === true) {
-				$cond = self::SQL_AND . ' ';
-			} else {
-				$cond = self::SQL_OR . ' ';
-			}
-		}
-
-		return $cond . "($condition)";
-	}
-
-	/**
 	 * Return a quoted schema name
 	 *
 	 * @param string   $schema  The schema name OPTIONAL
@@ -997,13 +802,13 @@ class Select extends Query
 	 * @param string   $sql SQL query
 	 * @return string
 	 */
-	protected function _renderDistinct($sql)
+	protected function _renderDistinct()
 	{
 		if ($this->_parts[self::DISTINCT]) {
-			$sql .= ' ' . self::SQL_DISTINCT;
+			return ' ' . self::SQL_DISTINCT;
 		}
 
-		return $sql;
+		return '';
 	}
 
 	/**
@@ -1012,7 +817,7 @@ class Select extends Query
 	 * @param string   $sql SQL query
 	 * @return string|null
 	 */
-	protected function _renderColumns($sql)
+	protected function _renderColumns()
 	{
 		if (!count($this->_parts[self::COLUMNS])) {
 			return null;
@@ -1036,16 +841,15 @@ class Select extends Query
 			}
 		}
 
-		return $sql .= ' ' . implode(', ', $columns);
+		return ' ' . implode(', ', $columns);
 	}
 
 	/**
 	 * Render FROM clause
 	 *
-	 * @param string   $sql SQL query
 	 * @return string
 	 */
-	protected function _renderFrom($sql)
+	protected function _renderFrom()
 	{
 		$from = array();
 
@@ -1073,20 +877,20 @@ class Select extends Query
 
 		// Add the list of all joins
 		if (!empty($from)) {
-			$sql .= ' ' . self::SQL_FROM . ' ' . implode("\n", $from);
+			return ' ' . self::SQL_FROM . ' ' . implode("\n", $from);
 		}
 
-		return $sql;
+		return '';
 	}
 
 	/**
 	 * Render UNION query
 	 *
-	 * @param string   $sql SQL query
 	 * @return string
 	 */
-	protected function _renderUnion($sql)
+	protected function _renderUnion()
 	{
+		$sql = '';
 		if ($this->_parts[self::UNION]) {
 			$parts = count($this->_parts[self::UNION]);
 			foreach ($this->_parts[self::UNION] as $cnt => $union) {
@@ -1104,7 +908,8 @@ class Select extends Query
 		return $sql;
 	}
 	
-	protected function _renderIndex($sql){
+	protected function _renderIndex(){
+		$sql = '';
 		foreach ($this->_parts[self::INDEX] as $part) {
 			$sql .= ' ' . $part;
 		}
@@ -1113,61 +918,43 @@ class Select extends Query
 	}
 
 	/**
-	 * Render WHERE clause
-	 *
-	 * @param string   $sql SQL query
-	 * @return string
-	 */
-	protected function _renderWhere($sql)
-	{
-		if ($this->_parts[self::FROM] && $this->_parts[self::WHERE]) {
-			$sql .= ' ' . self::SQL_WHERE . ' ' .  implode(' ', $this->_parts[self::WHERE]);
-		}
-
-		return $sql;
-	}
-
-	/**
 	 * Render GROUP clause
 	 *
-	 * @param string   $sql SQL query
 	 * @return string
 	 */
-	protected function _renderGroup($sql)
+	protected function _renderGroup()
 	{
 		if ($this->_parts[self::FROM] && $this->_parts[self::GROUP]) {
 			$group = array();
 			foreach ($this->_parts[self::GROUP] as $term) {
 				$group[] = $this->_adapter->quoteIdentifier($term, true);
 			}
-			$sql .= ' ' . self::SQL_GROUP_BY . ' ' . implode(",\n\t", $group);
+			return ' ' . self::SQL_GROUP_BY . ' ' . implode(",\n\t", $group);
 		}
 
-		return $sql;
+		return '';
 	}
 
 	/**
 	 * Render HAVING clause
 	 *
-	 * @param string   $sql SQL query
 	 * @return string
 	 */
-	protected function _renderHaving($sql)
+	protected function _renderHaving()
 	{
 		if ($this->_parts[self::FROM] && $this->_parts[self::HAVING]) {
-			$sql .= ' ' . self::SQL_HAVING . ' ' . implode(' ', $this->_parts[self::HAVING]);
+			return ' ' . self::SQL_HAVING . ' ' . implode(' ', $this->_parts[self::HAVING]);
 		}
 
-		return $sql;
+		return '';
 	}
 
 	/**
 	 * Render ORDER clause
 	 *
-	 * @param string   $sql SQL query
 	 * @return string
 	 */
-	protected function _renderOrder($sql)
+	protected function _renderOrder()
 	{
 		if ($this->_parts[self::ORDER]) {
 			$order = array();
@@ -1184,20 +971,20 @@ class Select extends Query
 					$order[] = $this->_adapter->quoteIdentifier($term, true);
 				}
 			}
-			$sql .= ' ' . self::SQL_ORDER_BY . ' ' . implode(', ', $order);
+			return  ' ' . self::SQL_ORDER_BY . ' ' . implode(', ', $order);
 		}
 
-		return $sql;
+		return '';
 	}
 
 	/**
 	 * Render LIMIT OFFSET clause
 	 *
-	 * @param string   $sql SQL query
 	 * @return string
 	 */
-	protected function _renderLimitoffset($sql)
+	protected function _renderLimitoffset()
 	{
+		$sql = '';
 		$count = 0;
 		$offset = 0;
 
@@ -1227,16 +1014,15 @@ class Select extends Query
 	/**
 	 * Render FOR UPDATE clause
 	 *
-	 * @param string   $sql SQL query
 	 * @return string
 	 */
-	protected function _renderForupdate($sql)
+	protected function _renderForupdate()
 	{
 		if ($this->_parts[self::FOR_UPDATE]) {
-			$sql .= ' ' . self::SQL_FOR_UPDATE;
+			return ' ' . self::SQL_FOR_UPDATE;
 		}
 
-		return $sql;
+		return '';
 	}
 
 	/**
@@ -1244,7 +1030,7 @@ class Select extends Query
 	 * for joinUsing syntax
 	 *
 	 * @param string $method
-	 * @param array $args OPTIONAL TableSelect query modifier
+	 * @param array $args OPTIONAL Select query modifier
 	 * @return Select
 	 * @throws SelectException If an invalid method is called.
 	 */
@@ -1277,22 +1063,6 @@ class Select extends Query
 
 		throw new SelectException("Unrecognized method '$method()'");
 	}
-
-	/**
-	 * Implements magic method.
-	 *
-	 * @return string This object as a SELECT string.
-	 */
-	public function __toString()
-	{
-		try {
-			$sql = $this->assemble();
-		} catch (Exception $e) {
-			trigger_error($e->getMessage(), E_USER_WARNING);
-			$sql = '';
-		}
-		return (string)$sql;
-	}
 	
 	
 	/************* 原生select方法结束，以下是从Db_Adapter移动过来的fetch方法库 ************/
@@ -1306,7 +1076,14 @@ class Select extends Query
 	 */
 	public function fetchAll()
 	{
-		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Assoc());
+		if (isset($this->_table)){
+			$iterator = new Iterator\DataObject($this->_table, [true, $this->isReadOnly()]);
+		}
+		else{
+			$iterator = new Iterator\Assoc();
+		}
+		
+		return $this->_adapter->newStatement($this)->setIterator($iterator);
 	}
 
 	/**
@@ -1372,13 +1149,24 @@ class Select extends Query
 	 * Uses the current fetchMode for the adapter.
 	 *
 	 * @param mixed				 $fetchMode Override current fetch mode.
-	 * @return array
+	 * @return array|DataObject
 	 */
 	public function fetchRow($fetchMode = null)
 	{
-		if ($fetchMode === null) {
-			$fetchMode = $this->_adapter->getFetchMode();
+		if (isset($this->_table)){
+			$this->_parts[self::LIMIT_COUNT]  = 1;
+			
+			$result = $this->_adapter->query($this);
+			
+			if ($result->num_rows == 0){
+				return null;
+			}
+			
+			$rowClass = $this->_table;
+			
+			return new $rowClass($result->fetch_assoc(), true, $this->isReadOnly());
 		}
+		
 		$result = $this->_adapter->query($this);
 		return $result->fetch_assoc();
 	}
@@ -1393,5 +1181,40 @@ class Select extends Query
 		$result = $this->_adapter->query($this);
 		$row = $result->fetch_array(\MYSQLI_NUM);
 		return $row === null ? null : $row[0];
+	}
+	
+	/**
+	 * Tests query to determine if expressions or aliases columns exist.
+	 *
+	 * @return boolean
+	 */
+	public function isReadOnly()
+	{
+		$readOnly = false;
+		$fields   = $this->_parts[Select::COLUMNS];
+	
+		if (!count($fields)) {
+			return $readOnly;
+		}
+	
+		foreach ($fields as $columnEntry) {
+			$column = $columnEntry[1];
+			$alias = $columnEntry[2];
+	
+			if ($alias !== null) {
+				$column = $alias;
+			}
+	
+			switch (true) {
+				case ($column == self::SQL_WILDCARD):
+					break;
+	
+				case ($column instanceof Expr):
+					$readOnly = true;
+					break 2;
+			}
+		}
+	
+		return $readOnly;
 	}
 }

@@ -322,10 +322,34 @@ class Adapter extends \mysqli
 	}
 	
 	/**
+	 * 
+	 * @return Insert
+	 */
+	public function insert($keyword = null){
+		$insert = new Insert($this);
+		if ($keyword !== null)
+			$insert->setKeyword($keyword);
+		return $insert;
+	}
+	
+	/**
+	 * 
+	 * @return Update
+	 */
+	public function update(){
+		return new Update($this);
+	}
+	
+	/**
+	 * 
+	 * @return Delete
+	 */
+	public function delete(){
+		return new Delete($this);
+	}
+	
+	/**
 	 * Safely quotes a value for an SQL statement.
-	 *
-	 * If an array is passed as the value, the array values are quoted
-	 * and then returned as a comma-separated string.
 	 *
 	 * @param mixed $value The value to quote.
 	 * @return mixed An SQL-safe quoted value (or string of separated values).
@@ -339,16 +363,21 @@ class Adapter extends \mysqli
 		if ($value instanceof Expr) {
 			return $value->__toString();
 		}
+		
+		if ($value === null){
+			return 'null';
+		}
 
-		return parent::real_escape_string($value);
+		return '\'' . parent::real_escape_string($value) . '\'';
 	}
 	
 	/**
+	 * the array values are quoted and then returned as a comma-separated string.
 	 * 为了解决quote的性能问题，将quote的Array迭代单独提出来
 	 */
-	public function quoteArray(array $array, $type){
+	public function quoteArray(array $array){
 		foreach ($array as &$val) {
-			$val = $this->quote($val, $type);
+			$val = $this->quote($val);
 		}
 		return implode(', ', $array); 
 	}
@@ -575,7 +604,7 @@ class Adapter extends \mysqli
 		}
 	}
 	
-	public function waitingUntilStatement($statement){
+	public function queryStatement($statement){
 		//将当前的语句插到第一个，然后把所有语句一口气打包发送给mysql
 		$keys = array_keys($this->_waitingQueue, $statement);
 		
@@ -594,6 +623,32 @@ class Adapter extends \mysqli
 		$this->_waitingQueue = array();
 	}
 	
+	public function query($sql){
+		if (!$this->_isConnected) $this->_connect();
+	
+		//将结果缓冲当中的结果集读出来
+		$this->flushQueue();
+	
+		if ($this->_profiler === false) {
+			$result = parent::query($sql);
+		}
+		else{
+			$q = $this->_profiler->queryStart($sql);
+				
+			$qp = $this->_profiler->getQueryProfile($q);
+			if ($qp->hasEnded()) {
+				$q = $this->_profiler->queryClone($qp);
+				$qp = $this->_profiler->getQueryProfile($q);
+			}
+	
+			$result = parent::query($sql);
+	
+			$this->_profiler->queryEnd($q);
+		}
+
+		return $result;
+	}
+	
 	/**
 	 * Special handling for mysqli query().
 	 *
@@ -602,20 +657,11 @@ class Adapter extends \mysqli
 	 * @return \mysqli_result
 	 * @throws \mysqli_sql_exception.
 	 */
-	public function query($sql, $bind = array())
+	public function queryBind($sql, $bind = array())
 	{
 		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
 		// connect to the database if needed
 		if (!$this->_isConnected) $this->_connect();
-
-		// is the $sql a Select object?
-		if ($sql instanceof Select) {
-			if (empty($bind)) {
-				$bind = $sql->getBind();
-			}
-		
-			$sql = $sql->assemble();
-		}
 		
 		// make sure $bind to an array;
 		// don't use (array) typecasting because

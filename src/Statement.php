@@ -88,7 +88,7 @@ class Statement implements \IteratorAggregate, \Countable
 		if (isset($this->_result))
 			return;
 		
-		$this->_connection->waitingUntilStatement($this);
+		$this->_connection->queryStatement($this);
 	}
 	
 	/**
