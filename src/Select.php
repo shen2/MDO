@@ -1130,9 +1130,9 @@ class Select extends Query
 	 * 
 	 * @return Statement
 	 */
-	public function fetchMap()
+	public function fetchAssocMap()
 	{
-		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Map($this->_table, [true, $this->isReadOnly()]));
+		return $this->_adapter->newStatement($this)->setIterator(new Iterator\AssocMap());
 	}
 	
 	/**

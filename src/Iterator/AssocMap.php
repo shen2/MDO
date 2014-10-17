@@ -1,7 +1,7 @@
 <?php
 namespace MDO\Iterator;
 
-class Map extends Base{
+class AssocMap extends Base{
 	/**
 	 * 
 	 * @var array
@@ -35,7 +35,7 @@ class Map extends Base{
 	public function fetchAll(){
 		$map = array();
 		while($data = $this->_result->fetch_array(\MYSQLI_ASSOC)){
-			$map[current($this->_data)] = new $this->_fetchArgument($data, $this->_ctorArgs[0], $this->_ctorArgs[1]);
+			$map[current($data)] = $data;
 		}
 		
 		return $map;
