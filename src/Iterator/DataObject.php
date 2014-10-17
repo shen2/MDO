@@ -3,7 +3,7 @@ namespace MDO\Iterator;
 
 class DataObject extends Base{
 	protected function _fetch(){
-		$data = $this->_result->fetch_assoc($this->_fetchArgument, $this->_ctorArgs);
+		$data = $this->_result->fetch_assoc();
 		return new $this->_fetchArgument($data, $this->_ctorArgs[0], $this->_ctorArgs[1]);
 	}
 	

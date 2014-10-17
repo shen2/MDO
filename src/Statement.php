@@ -58,6 +58,8 @@ class Statement implements \IteratorAggregate, \Countable
 	}
 	
 	public function getResult(){
+		if (!isset($this->_result)) $this->_query();
+		
 		return $this->_result;
 	}
 	
@@ -108,17 +110,20 @@ class Statement implements \IteratorAggregate, \Countable
 	public function fetch(){
 		if (!isset($this->_result)) $this->_query();
 		
-		return $this->_result;
+		$this->_iterator->setResult($this->_result);
+		return $this->_iterator->fetchAll();
 	}
 	
 	public function current(){
 		if (!isset($this->_result)) $this->_query();
 		
-		if ($this->_result instanceof \SplFixedArray){
+		if ($this->_result instanceof \mysqli_result){
 			// php 5.4.6中有一个bug, 在小概率(5%)情况下，SplFixedArray的count不为0，但是current()取不到实际的数据，var_dump()时也显示SplFixedArray(0)，必须用[0]才能取到数据。
-			return $this->_result->num_rows
-				? ($this->_result->current() ?: $this->_result[0])
-				: null;
+			if ($this->_result->num_rows === 0)
+				return null;
+			
+			$this->_iterator->setResult($this->_result);
+			return $this->_iterator->current();
 		}
 		else{//普通数组或者其他实现了count和current方法的对象
 			return count($this->_result) ? current($this->_result) : null;

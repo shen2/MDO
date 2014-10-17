@@ -9,7 +9,7 @@ class Column extends Base{
 	public function fetchAll(){
 		$rowset = new \SplFixedArray($this->_result->num_rows);
 		$index = 0;
-		while($row = $this->_result->fetch_assoc()){
+		while($row = $this->_result->fetch_array(\MYSQLI_NUM)){
 			$rowset[$index++] = $row[0];
 		}
 		return $rowset;
