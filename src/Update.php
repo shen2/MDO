@@ -6,7 +6,7 @@ class Update extends Query{
 	protected $_parts = [
 		'table'	=> null,
 		'set'	=> [],
-		'where'	=> [],
+		self::WHERE	=> [],
 		self::UNION => [],
 	];
 	

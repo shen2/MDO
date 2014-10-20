@@ -34,6 +34,7 @@ class KeyPair extends Base{
 	
 	public function fetchAll(){
 		$map = array();
+		$this->_result->data_seek(0);
 		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
 			$map[$data[0]] = $data[1];
 		}

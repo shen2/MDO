@@ -14,7 +14,7 @@ class Func extends Base{
 	public function fetchAll(){
 		$rowset = new \SplFixedArray($this->_result->num_rows);
 		$index = 0;
-		
+		$this->_result->data_seek(0);
 		$func = $this->_fetchArgument;
 		while($data = $this->_result->fetch_assoc()){
 			$rowset[$index] = $func($data);
