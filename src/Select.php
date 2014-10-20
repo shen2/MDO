@@ -537,6 +537,28 @@ class Select extends Query
 	}
 
 	/**
+	 * Clear parts of the Select object, or an individual part.
+	 *
+	 * @param string $part OPTIONAL
+	 * @return Select
+	 */
+	public function reset($part = null)
+	{
+		static $partsInit = null;
+		
+		if ($partsInit === null){
+			$partsInit = (new self($this->_adapter))->_parts;
+		}
+		
+		if ($part == null) {
+			$this->_parts = $partsInit;
+		} else if (array_key_exists($part, $partsInit)) {
+			$this->_parts[$part] = $partsInit[$part];
+		}
+		return $this;
+	}
+
+	/**
 	 * Populate the {@link $_parts} 'join' key
 	 *
 	 * Does the dirty work of populating the join key.
