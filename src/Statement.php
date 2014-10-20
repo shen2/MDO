@@ -114,6 +114,16 @@ class Statement implements \IteratorAggregate, \Countable
 		return $this->_iterator->fetchAll();
 	}
 	
+	/**
+	 * @return array
+	 */
+	public function fetchAllToArray(){
+		if (!isset($this->_result)) $this->_query();
+	
+		$this->_iterator->setResult($this->_result);
+		return $this->_iterator->fetchAllToArray();
+	}
+	
 	public function current(){
 		if (!isset($this->_result)) $this->_query();
 		

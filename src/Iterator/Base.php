@@ -9,6 +9,8 @@ abstract class Base implements \Iterator{
 	
 	protected $_ctorArgs;
 	
+	protected $_rowsetClass = 'SplFixedArray';
+	
 	protected $_offset = 0;
 	
 	protected $_resultOffset = 0;
@@ -53,13 +55,24 @@ abstract class Base implements \Iterator{
 		$this->_result->data_seek(0);
 	}
 	
+	/**
+	 * 
+	 * @return \SplFixedArray
+	 */
 	public function fetchAll(){
-		$rowset = new \SplFixedArray($this->_result->num_rows);
+		$rowset = new $this->_rowsetClass($this->_result->num_rows);
 		$index = 0;
 		$this->_result->data_seek(0);
 		while($row = $this->_fetch()){
 			$rowset[$index++] = $row;
 		}
 		return $rowset;
+	}
+	
+	/**
+	 * @return array
+	 */
+	public function fetchAllToArray(){
+		return $this->fetchAll()->toArray();
 	}
 }
