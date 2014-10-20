@@ -97,92 +97,92 @@ class User extends MDO\DataObject{
 通常，我们通过已经派生的MDO\DataObject类的静态方法select()来创建 MDO\Select 实例。
 
 ```php
-    $select = User::select();
-    // select * from `pre_users`;
+$select = User::select();
+// select * from `pre_users`;
 ```
 
 ### where()
 为了避免出现sql注入漏洞，所有包含变量的where条件，都应使用?来进行转义。
 
 ```php
-    $select = User::select()
-        ->where('name like ?', '小钢炮');
-    // select * from `pre_users` where name like '小钢炮';
+$select = User::select()
+    ->where('name like ?', '小钢炮');
+// select * from `pre_users` where name like '小钢炮';
 ```
 
 如果有多个where条件，以and相连，直接调用多次where()就可以了。
 
 ```php
-    $select = User::select()
-        ->where('gender = ?', 'male')
-        ->where('age > ?', 40);
-    // select * from `pre_users` where gender = 'male' and age > 40;
+$select = User::select()
+    ->where('gender = ?', 'male')
+    ->where('age > ?', 40);
+// select * from `pre_users` where gender = 'male' and age > 40;
 ```
 
 ### order()
 order()方法的参数就是排序字段名，asc/desc直接写在字符串里。
 
 ```php
-    $select = User::select()
-        ->order('created_at desc');
-    // select * from `pre_users` order by created_at desc;
+$select = User::select()
+    ->order('created_at desc');
+// select * from `pre_users` order by created_at desc;
 ```
 
 如果有多个order字段，直接调用多次order函数就可以了。
 
 ```php
-    $select = User::select()
-        ->order('name asc')
-        ->order('email asc');
-    // select * from `pre_users` order by name asc, email asc;
+$select = User::select()
+    ->order('name asc')
+    ->order('email asc');
+// select * from `pre_users` order by name asc, email asc;
 ```
 
 ### limit()
 第一个参数是limit的字段数，第二个参数是offset(默认是0,可省略)
 
 ```
-    $select = User::select()
-        ->order('name asc')
-        ->order('email asc')
-        ->limit(10, 30);
-    // select * from `pre_users` order by name asc, email asc limit 10 offset 30;
+$select = User::select()
+    ->order('name asc')
+    ->order('email asc')
+    ->limit(10, 30);
+// select * from `pre_users` order by name asc, email asc limit 10 offset 30;
 ```
 
 ### 指定 select 的字段
 如果你想获得指定的字段，而不需要所有字段(*)，可以使用selectCol函数，比如：
 
 ```php
-    $select = User::selectCol('count(*)');
-    // select count(*) from `pre_users`;
+$select = User::selectCol('count(*)');
+// select count(*) from `pre_users`;
 ```
 
 如果是多个字段，可以写成：
-
-    $select = User::selectCol(array('user_id', 'name', 'email'));
-    // select user_id, name, email from `pre_users`;
-
+```php
+$select = User::selectCol(array('user_id', 'name', 'email'));
+// select user_id, name, email from `pre_users`;
+```
 如果给字段起别名，可以写成：
 
 ```php
-    $select = User::selectCol(array('id' => 'user_id', 'name', 'email'));
-    // select user_id as id, name, email from `pre_users`;
+$select = User::selectCol(array('id' => 'user_id', 'name', 'email'));
+// select user_id as id, name, email from `pre_users`;
 ```
 
 ### join()
 例如现在有 pre_users 表和 pre_posts 表，我们要把posts表的查询结果和users表join。可以写成：
 
 ```php
-    Post::select(true)
-    	->joinInner('pre_users', 'pre_users.user_id = pre_posts.author_id', array('uid'=>'user_id', 'date'=>'updated'))
-    	->where(...)
-    // select `pre_posts`.*, `pre_users`.user_id as id, `pre_users`.updated as date from `pre_posts` inner join pre_users on pre_users.user_id = pre_posts.author_id;
+Post::select(true)
+	->joinInner('pre_users', 'pre_users.user_id = pre_posts.author_id', array('uid'=>'user_id', 'date'=>'updated'))
+	->where(...)
+// select `pre_posts`.*, `pre_users`.user_id as id, `pre_users`.updated as date from `pre_posts` inner join pre_users on pre_users.user_id = pre_posts.author_id;
 ```
 
 ### assemble()
 有时候你不确定写出的MDO\Select对象在执行的时候会转换成什么SQL语句，可以使用assemble()方法预览SQL语句
 
 ```php
-    echo $select->assemble();
+echo $select->assemble();
 ```
 
 ## fetch封装方法
@@ -190,11 +190,11 @@ order()方法的参数就是排序字段名，asc/desc直接写在字符串里�
 
 ### fetchAll()
 ```php
-    $userList = User::select()
-        ->where('created_at > ?', '2012-12-21')
-        ->order('image_count desc')
-        ->limit(5)
-        ->fetchAll();
+$userList = User::select()
+    ->where('created_at > ?', '2012-12-21')
+    ->order('image_count desc')
+    ->limit(5)
+    ->fetchAll();
 ```
 
 返回值是一个MDO\Statement，可以直接进行foreach迭代或者count()
@@ -203,9 +203,9 @@ order()方法的参数就是排序字段名，asc/desc直接写在字符串里�
 获取一行的方法
 
 ```php
-    $user = User::select()
-        ->where('email_hash = md5(?)', 'd269c7b5b75e3f6fd794e68e889b5daa')
-        ->fetchRow();
+$user = User::select()
+    ->where('email_hash = md5(?)', 'd269c7b5b75e3f6fd794e68e889b5daa')
+    ->fetchRow();
 ```
 
 不需要额外写limit(1)，因为fetchRow()方法会自动给sql语句增加 limit 1
@@ -214,30 +214,30 @@ order()方法的参数就是排序字段名，asc/desc直接写在字符串里�
 如果结果集是单行单列的，用fetchOne()可以直接得到这个值
 
 ```php
-    $count = User::selectCol('count(*)')
-        ->where('created_at > ?', '2012-12-21')
-        ->fetchOne();
+$count = User::selectCol('count(*)')
+    ->where('created_at > ?', '2012-12-21')
+    ->fetchOne();
 ```
 
 ### find()
 主键查询肯定是用得最广泛的，使用find()方法可以简化主键查询的过程。
 
 ```php
-    $user = User::find(40)->current();
+$user = User::find(40)->current();
 ```
 这样就可以查询到主键为40的user对象，如果记录不存在，返回值是null。
 
 如果想通过多个ID一次查询多条记录，可以写成：
 
 ```php
-    $userList = User::find(array(1,2,3,4,5));
+$userList = User::find(array(1,2,3,4,5));
 ```
 返回值是一个MDO\Statement，可以直接foreach迭代。注意，结果集中的对象顺序未必和find的参数相同，结果集中的对象数量也可能小于find的参数。
 
 find()还支持多重主键的查询：
 
 ```php
-    $relationship = Friendship::find(123,456)->current();
+$relationship = Friendship::find(123,456)->current();
 ```
 
 ## MDO\Statement
@@ -248,5 +248,5 @@ $select->fetchAll()的返回值是一个MDO\Statement对象，这个对象未必
 如果这给你带来了困扰，可以使用fetch()方法，获得真正的结果数据集(一个SplFixedArray对象):
 
 ```php
-    $fixedArray = $select->fetchAll()->fetch();
+$fixedArray = $select->fetchAll()->fetch();
 ```
