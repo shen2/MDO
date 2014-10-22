@@ -347,7 +347,7 @@ abstract class DataObject extends \ArrayObject
 		 */
 		(new Insert(static::$_db))
 			->into((static::$_schema ? static::$_schema . '.' : '') . static::$_name)
-			->cols(array_keys($data))
+			->columns(array_keys($data))
 			->values(array_values($data))
 			->query();
 
@@ -383,7 +383,7 @@ abstract class DataObject extends \ArrayObject
 	{
 		return static::$_db->insert('DELAYED')
 			->into((static::$_schema ? static::$_schema . '.' : '') . static::$_name)
-			->cols(array_keys($data))
+			->columns(array_keys($data))
 			->values(array_values($data))
 			->query();
 	}
@@ -398,7 +398,7 @@ abstract class DataObject extends \ArrayObject
 	{
 		return static::$_db->insert('IGNORE')
 			->into((static::$_schema ? static::$_schema . '.' : '') . static::$_name)
-			->cols(array_keys($data))
+			->columns(array_keys($data))
 			->values(array_values($data))
 			->query();
 	}
@@ -418,7 +418,7 @@ abstract class DataObject extends \ArrayObject
 		 */
 		(new Insert(static::$_db))
 			->into((static::$_schema ? static::$_schema . '.' : '') . static::$_name)
-			->cols(array_keys($data))
+			->columns(array_keys($data))
 			->values(array_values($data))
 			->onDuplicateKeyUpdate($updateData)
 			->query();
