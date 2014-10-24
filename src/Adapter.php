@@ -367,6 +367,8 @@ class Adapter extends \mysqli
 		if ($value === null){
 			return 'null';
 		}
+		
+		if (!$this->_isConnected) $this->_connect();
 
 		return '\'' . parent::real_escape_string($value) . '\'';
 	}
@@ -605,6 +607,8 @@ class Adapter extends \mysqli
 	}
 	
 	public function queryStatement($statement){
+		if (!$this->_isConnected) $this->_connect();
+		
 		//将当前的语句插到第一个，然后把所有语句一口气打包发送给mysql
 		$keys = array_keys($this->_waitingQueue, $statement);
 		
