@@ -627,6 +627,12 @@ class Adapter extends \mysqli
 		$this->_waitingQueue = array();
 	}
 	
+	/**
+	 * 
+	 * @param string $sql
+	 * @throws AdapterException
+	 * @return \mysqli_result
+	 */
 	public function query($sql){
 		if (!$this->_isConnected) $this->_connect();
 	
@@ -649,6 +655,9 @@ class Adapter extends \mysqli
 	
 			$this->_profiler->queryEnd($q);
 		}
+		
+		if ($this->errno)
+			throw new AdapterException($this->error, $this->errno);
 
 		return $result;
 	}
