@@ -765,6 +765,16 @@ class Adapter extends \mysqli
 
 		return $affected;
 	}
+	
+	/**
+	 * 
+	 * @return self
+	 */
+	public function ensureConnected(){
+		if (!$this->_isConnected) $this->_connect();
+		
+		return $this;
+	}
 
 	/**
 	 * Creates a PDO object and connects to the database.

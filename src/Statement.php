@@ -93,6 +93,8 @@ class Statement implements \IteratorAggregate, \Countable
 	 * @throws \mysqli_sql_exception
 	 */
 	public function _query(){
+		$this->_connection->ensureConnected();
+		
 		//如果已经在结果缓存中，则搜寻结果集
 		$this->_connection->flushQueue($this);
 		

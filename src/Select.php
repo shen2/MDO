@@ -1188,7 +1188,7 @@ class Select extends Query
 		if (isset($this->_table)){
 			$this->_parts[self::LIMIT_COUNT]  = 1;
 			
-			$result = $this->_adapter->query($this);
+			$result = $this->_adapter->query($this->assemble());
 			
 			if ($result->num_rows == 0){
 				return null;
@@ -1199,7 +1199,7 @@ class Select extends Query
 			return new $rowClass($result->fetch_assoc(), true, $this->isReadOnly());
 		}
 		
-		$result = $this->_adapter->query($this);
+		$result = $this->_adapter->query($this->assemble());
 		return $result->fetch_assoc();
 	}
 	
@@ -1210,7 +1210,7 @@ class Select extends Query
 	 */
 	public function fetchOne()
 	{
-		$result = $this->_adapter->query($this);
+		$result = $this->_adapter->query($this->assemble());
 		$row = $result->fetch_array(\MYSQLI_NUM);
 		return $row === null ? null : $row[0];
 	}
