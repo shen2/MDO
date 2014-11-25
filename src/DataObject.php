@@ -489,7 +489,7 @@ abstract class DataObject extends \ArrayObject
 	 * was found.
 	 *
 	 * @param  mixed $key The value(s) of the primary keys.
-	 * @return SplFixedArray Row(s) matching the criteria.
+	 * @return Statement Row(s) matching the criteria.
 	 * @throws DataObjectException
 	 */
 	public static function find()
@@ -547,6 +547,20 @@ abstract class DataObject extends \ArrayObject
 		return static::select()
 			->where(implode(' OR ', $whereOrTerms))
 			->fetchAll();
+	}
+	
+	/**
+	 *
+	 * @return \SplFixedArray
+	 */
+	public static function fetchAllByPrimary($keys){
+		if (empty($keys))
+			return new \SplFixedArray(0);
+	
+		return static::select()
+			->where(static::$_db->quoteIdentifier(static::$_primary[0], true) . ' in (' . static::$_db->quoteArray($keys) . ')')
+			->fetchAll()
+			->fetch();
 	}
 
 	/**
@@ -980,7 +994,6 @@ abstract class DataObject extends \ArrayObject
 		$primaryKey = $this->_getPrimaryKey($useDirty);
 
 		// retrieve recently updated row using primary keys
-		$where = array();
 		foreach ($primaryKey as $column => $value) {
 			$tableName = static::$_db->quoteIdentifier(static::$_name, true);
 			$columnName = static::$_db->quoteIdentifier($column, true);

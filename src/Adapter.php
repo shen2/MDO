@@ -601,6 +601,9 @@ class Adapter extends \mysqli
 			$statement = array_shift($this->_fetchingQueue);
 			$statement->setResult($this->store_result());
 			
+			if ($this->errno)
+				throw new AdapterException($this->error, $this->errno);
+			
 			if ($statement === $untilStatement)
 				return;
 		}
@@ -625,6 +628,9 @@ class Adapter extends \mysqli
 		$this->_fetchingQueue = $this->_waitingQueue;
 		
 		$this->_waitingQueue = array();
+		
+		if ($this->errno)
+			throw new AdapterException($this->error, $this->errno);
 	}
 	
 	/**
@@ -760,7 +766,7 @@ class Adapter extends \mysqli
 		$affected = parent::query($sql);
 
 		if ($affected === false) {
-			throw new AdapterException($this->error);
+			throw new AdapterException($this->error, $this->errno);
 		}
 
 		return $affected;
