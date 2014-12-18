@@ -14,11 +14,6 @@ class Adapter extends \mysqli
 	const AUTO_QUOTE_IDENTIFIERS = 'autoQuoteIdentifiers';
 	
 	/**
-	 * Use the ALLOW_SERIALIZATION constant in the config of a Zend_Db_Adapter.
-	 */
-	const ALLOW_SERIALIZATION = 'allowSerialization';
-	
-	/**
 	 * Use the AUTO_RECONNECT_ON_UNSERIALIZE constant in the config of a Zend_Db_Adapter.
 	 */
 	const AUTO_RECONNECT_ON_UNSERIALIZE = 'autoReconnectOnUnserialize';
@@ -36,7 +31,7 @@ class Adapter extends \mysqli
 	 *
 	 * @var Profiler
 	 */
-	protected $_profiler;
+	protected $_profiler = false;
 
 	/**
 	 * Default class name for the profiler object.
@@ -55,12 +50,6 @@ class Adapter extends \mysqli
 	 * @var bool
 	 */
 	protected $_autoQuoteIdentifiers = true;
-
-	/** Weither or not that object can get serialized
-	 *
-	 * @var bool
-	 */
-	protected $_allowSerialization = true;
 
 	/**
 	 * Weither or not the database should be reconnected
@@ -112,61 +101,23 @@ class Adapter extends \mysqli
 	public function __construct($config)
 	{
 		parent::init();
-		//$this->_checkRequiredOptions($config);
-
-		$options = array(
-			self::AUTO_QUOTE_IDENTIFIERS => $this->_autoQuoteIdentifiers,
-		);
-		$driverOptions = array();
-
-		/*
-		 * normalize the config and merge it with the defaults
-		 */
-		if (array_key_exists('options', $config)) {
-			// can't use array_merge() because keys might be integers
-			foreach ((array) $config['options'] as $key => $value) {
-				$options[$key] = $value;
-			}
-		}
-		if (array_key_exists('driver_options', $config)) {
-			if (!empty($config['driver_options'])) {
-				// can't use array_merge() because keys might be integers
-				foreach ((array) $config['driver_options'] as $key => $value) {
-					$driverOptions[$key] = $value;
-				}
-			}
-		}
-
-		if (!isset($config['charset'])) {
-			$config['charset'] = null;
-		}
-
-		if (!isset($config['persistent'])) {
-			$config['persistent'] = false;
-		}
 
 		$this->_config = array_merge($this->_config, $config);
-		$this->_config['options'] = $options;
-		$this->_config['driver_options'] = $driverOptions;
+		$this->_config['driver_options'] = isset($config['driver_options']) ? $config['driver_options'] : array();
 
-		// obtain quoting property if there is one
-		if (array_key_exists(self::AUTO_QUOTE_IDENTIFIERS, $options)) {
-			$this->_autoQuoteIdentifiers = (bool) $options[self::AUTO_QUOTE_IDENTIFIERS];
-		}
+		if (!empty($this->_config['options'])){
+			// obtain quoting property if there is one
+			if (array_key_exists(self::AUTO_QUOTE_IDENTIFIERS, $this->_config['options'])) {
+				$this->_autoQuoteIdentifiers = (bool) $this->_config['options'][self::AUTO_QUOTE_IDENTIFIERS];
+			}
 
-		// obtain allow serialization property if there is one
-		if (array_key_exists(self::ALLOW_SERIALIZATION, $options)) {
-			$this->_allowSerialization = (bool) $options[self::ALLOW_SERIALIZATION];
-		}
-
-		// obtain auto reconnect on unserialize property if there is one
-		if (array_key_exists(self::AUTO_RECONNECT_ON_UNSERIALIZE, $options)) {
-			$this->_autoReconnectOnUnserialize = (bool) $options[self::AUTO_RECONNECT_ON_UNSERIALIZE];
+			// obtain auto reconnect on unserialize property if there is one
+			if (array_key_exists(self::AUTO_RECONNECT_ON_UNSERIALIZE, $this->_config['options'])) {
+				$this->_autoReconnectOnUnserialize = (bool) $this->_config['options'][self::AUTO_RECONNECT_ON_UNSERIALIZE];
+			}
 		}
 
 		// 修改了原来的Zend_Db代码，在不开启profiler的情况下，不再生成profiler实例
-		$this->_profiler = false;
-		
 		if (array_key_exists(self::PROFILER, $this->_config)) {
 			if ($this->_config[self::PROFILER])
 				$this->setProfiler($this->_config[self::PROFILER]);
@@ -542,10 +493,6 @@ class Adapter extends \mysqli
 	 */
 	public function __sleep()
 	{
-		if ($this->_allowSerialization == false) {
-			/** @see AdapterException */
-			throw new AdapterException(get_class($this) ." is not allowed to be serialized");
-		}
 		$this->_connection = false;
 		return array_keys(array_diff_key(get_object_vars($this), array('_connection'=>false)));
 	}
@@ -793,6 +740,11 @@ class Adapter extends \mysqli
 		if ($this->_profiler) $q = $this->_profiler->queryStart('connect', Profiler::CONNECT);
 
 		$config = $this->_config;
+		if (!empty($config['driver_options'])) {
+			foreach($config['driver_options'] as $option => $value)
+				parent::options($option, $value);
+		}
+		
 		//try {省略throw-catch-rethrow块，直接抛出\mysqli_sql_exception
 		parent::real_connect(
 			(empty($config['persistent']) ? '' : 'p:') . (isset($config['host']) ? $config['host'] : ini_get("mysqli.default_host")),
@@ -802,12 +754,17 @@ class Adapter extends \mysqli
 			isset($config['port']) ? $config['port'] : ini_get("mysqli.default_port"),
 			isset($config['socket']) ? $config['socket'] : ini_get("mysqli.default_socket")
 		);
+		
+		if ($this->connect_errno){
+			throw new ConnectException($this->connect_error, $mysqli->connect_errno);
+		}
+		
 		$this->_isConnected = true;
 
 		if ($this->_profiler) $this->_profiler->queryEnd($q);
 
-		if (!empty($this->_config['charset'])) {
-			parent::set_charset($this->_config['charset']);
+		if (!empty($config['charset'])) {
+			parent::set_charset($config['charset']);
 		}
 	}
 }
