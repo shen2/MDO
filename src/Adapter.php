@@ -756,7 +756,7 @@ class Adapter extends \mysqli
 		);
 		
 		if ($this->connect_errno){
-			throw new ConnectException($this->connect_error, $mysqli->connect_errno);
+			throw new ConnectException($this->connect_error, $this->connect_errno);
 		}
 		
 		$this->_isConnected = true;
