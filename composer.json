@@ -10,7 +10,8 @@
 		}
 	],
 	"require": {
-		"php": ">=5.4.0"
+		"php": ">=5.5.0",
+		"ext-mysqlnd": "*"
 	},
 	"autoload": {
 		"psr-4": { "MDO\\": "src/" }

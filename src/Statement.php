@@ -15,12 +15,6 @@ class Statement implements \IteratorAggregate, \Countable
 	 */
 	protected $_select;
 	
-	/**
-	 * 
-	 * @var Iterator\Base
-	 */
-	protected $_iterator;
-	
 	protected $_result = null;
 	
 	/**
@@ -35,16 +29,6 @@ class Statement implements \IteratorAggregate, \Countable
 	public function __construct($connection, $select){
 		$this->_connection = $connection;
 		$this->_select = $select;
-	}
-	
-	/**
-	 * 
-	 * @param Iterator\Base $iterator
-	 */
-	public function setIterator($iterator){
-		$this->_iterator = $iterator;
-		
-		return $this;
 	}
 	
 	public function __toString(){
@@ -69,19 +53,95 @@ class Statement implements \IteratorAggregate, \Countable
 	}
 	
 	/**
-	 * 
-	 * @return \Iterator
+	 * @return \Generator
 	 */
 	public function getIterator(){
+		return $this->getAssocGenerator();
+	}
+	
+	/**
+	 * @return \Generator
+	 */
+	public function getAssocGenerator(){
 		if (!isset($this->_result)) $this->_query();
 		
-		$this->_iterator->setResult($this->_result);
-		$all = $this->_iterator->fetchAll();
+		$this->_result->data_seek(0);
+		while($row = $this->_result->fetch_assoc()){
+			yield $row;
+		}
+	}
+	
+	/**
+	 * @return \Generator
+	 */
+	public function getAssocMapGenerator(){
+		if (!isset($this->_result)) $this->_query();
 		
-		if (is_array($all))
-			return new \ArrayIterator($all);
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_array(\MYSQLI_ASSOC)){
+			$key = current($data);
+			yield $key => $data;
+		}
+	}
+	
+	/**
+	 * @return \Generator
+	 */
+	public function getColumnGenerator($colno = 0){
+		if (!isset($this->_result)) $this->_query();
 		
-		return $all;
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
+			yield $data[$colno];
+		}
+	}
+	
+	/**
+	 * @return \Generator
+	 */
+	public function getDataObjectGenerator($rowClass, $stored, $readOnly){
+		if (!isset($this->_result)) $this->_query();
+		
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_assoc()){
+			yield new $rowClass($data, $stored, $readOnly);
+		}
+	}
+	
+	/**
+	 * @return \Generator
+	 */
+	public function getFuncGenerator($func){
+		if (!isset($this->_result)) $this->_query();
+		
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_assoc()){
+			yield $func($data);
+		}
+	}
+	
+	/**
+	 * @return \Generator
+	 */
+	public function getKeyPairGenerator(){
+		if (!isset($this->_result)) $this->_query();
+		
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
+			yield $data[0] => $data[1];
+		}
+	}
+	
+	/**
+	 * @return \Generator
+	 */
+	public function getObjectGenerator($rowClass, $params){
+		if (!isset($this->_result)) $this->_query();
+		
+		$this->_result->data_seek(0);
+		while($row = $this->_result->fetch_object($rowClass, $params)){
+			yield $row;
+		}
 	}
 	
 	public function assemble(){
@@ -109,11 +169,17 @@ class Statement implements \IteratorAggregate, \Countable
 	 * 
 	 * @return mixed
 	 */
-	public function fetch(){
+	public function fetch($rowsetClass = 'SplFixedArray'){
 		if (!isset($this->_result)) $this->_query();
 		
-		$this->_iterator->setResult($this->_result);
-		return $this->_iterator->fetchAll();
+		$rowset = new $rowsetClass($this->_result->num_rows);
+		$index = 0;
+		$this->_result->data_seek(0);
+		while($row = $this->_result->fetch_assoc()){
+			$rowset[$index++] = $row;
+		}
+		
+		return $rowset;
 	}
 	
 	/**
@@ -122,24 +188,14 @@ class Statement implements \IteratorAggregate, \Countable
 	public function fetchAllToArray(){
 		if (!isset($this->_result)) $this->_query();
 	
-		$this->_iterator->setResult($this->_result);
-		return $this->_iterator->fetchAllToArray();
-	}
-	
-	public function current(){
-		if (!isset($this->_result)) $this->_query();
+		$rowset = [];
+		$index = 0;
+		$this->_result->data_seek(0);
+		while($row = $this->_result->fetch_assoc()){
+			$rowset[$index++] = $row;
+		}
 		
-		if ($this->_result instanceof \mysqli_result){
-			// php 5.4.6中有一个bug, 在小概率(5%)情况下，SplFixedArray的count不为0，但是current()取不到实际的数据，var_dump()时也显示SplFixedArray(0)，必须用[0]才能取到数据。
-			if ($this->_result->num_rows === 0)
-				return null;
-			
-			$this->_iterator->setResult($this->_result);
-			return $this->_iterator->current();
-		}
-		else{//普通数组或者其他实现了count和current方法的对象
-			return count($this->_result) ? current($this->_result) : null;
-		}
+		return $rowset;
 	}
 	
 	public function count() {

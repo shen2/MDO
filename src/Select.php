@@ -1087,26 +1087,29 @@ class Select extends Query
 		throw new SelectException("Unrecognized method '$method()'");
 	}
 	
-	
-	/************* 原生select方法结束，以下是从Db_Adapter移动过来的fetch方法库 ************/
+	/**
+	 * @return Statement
+	 */
+	public function getStatement(){
+		return $this->_adapter->newStatement($this); 
+	}
 	
 	/**
 	 * Fetches all SQL result rows as a sequential array.
 	 * Uses the current fetchMode for the adapter.
 	 *
 	 * @param mixed				 $fetchMode Override current fetch mode.
-	 * @return Statement
+	 * @return \Generator
 	 */
 	public function fetchAll()
 	{
+		$stmt = $this->_adapter->newStatement($this);
 		if (isset($this->_table)){
-			$iterator = new Iterator\DataObject($this->_table, [true, $this->isReadOnly()]);
+			return $stmt->getDataObjectGenerator($this->_table, true, $this->isReadOnly());
 		}
 		else{
-			$iterator = new Iterator\Assoc();
+			return $stmt->getAssocGenerator();
 		}
-		
-		return $this->_adapter->newStatement($this)->setIterator($iterator);
 	}
 
 	/**
@@ -1118,21 +1121,21 @@ class Select extends Query
 	 * rows with duplicate values in the first column will
 	 * overwrite previous data.
 	 *
-	 * @return Statement
+	 * @return Generator
 	 */
 	public function fetchAssoc()
 	{
-		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Assoc());
+		return $this->_adapter->newStatement($this)->getAssocGenerator();
 	}
 
 	/**
 	 * Fetches the first column of all SQL result rows as an array.
 	 *
-	 * @return Statement
+	 * @return \Generator
 	 */
 	public function fetchCol()
 	{
-		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Column(0));
+		return $this->_adapter->newStatement($this)->getColumnGenerator(0);
 	}
 
 	/**
@@ -1141,39 +1144,39 @@ class Select extends Query
 	 * The first column is the key, the second column is the
 	 * value.
 	 *
-	 * @return Statement
+	 * @return \Generator
 	 */
 	public function fetchPairs()
 	{
-		return $this->_adapter->newStatement($this)->setIterator(new Iterator\KeyPair());
+		return $this->_adapter->newStatement($this)->getKeyPairGenerator();
 	}
 	
 	/**
 	 * 
-	 * @return Statement
+	 * @return \Generator
 	 */
 	public function fetchAssocMap()
 	{
-		return $this->_adapter->newStatement($this)->setIterator(new Iterator\AssocMap());
+		return $this->_adapter->newStatement($this)->getAssocMapGenerator();
 	}
 	
 	/**
 	 * 以回调函数的方式获取
 	 * @param string $func
-	 * @return Statement
+	 * @return \Generator
 	 */
 	public function fetchFunc($func){
-		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Func($func));
+		return $this->_adapter->newStatement($this)->getFuncGenerator($func);
 	}
 	
 	/**
 	 * 以自定义类的方式获取
 	 * @param string $class
 	 * @param array $ctor_args
-	 * @return Statement
+	 * @return \Generator
 	 */
 	public function fetchClass($class, $ctor_args = array()){
-		return $this->_adapter->newStatement($this)->setIterator(new Iterator\Object($class, $ctor_args));
+		return $this->_adapter->newStatement($this)->getObjectGenerator($class, $ctor_args);
 	}
 	
 	/**

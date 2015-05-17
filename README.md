@@ -64,9 +64,17 @@ $configs = array(
   
 $db = new MDO\Adapter($configs);
 MDO\DataObject::setDefaultAdapter($db);
-?>
 ```
 出于性能的考虑，即使你使用了autoload机制，仍然建议你显式地主动require以上那些php类定义文件，这样可以减少发动autoload的次数，避免不必要的性能浪费。
+
+php和mysql部署在同一台服务器上时，最高性能配置方式是unix套接字和持久化，具体配置如下：
+```php
+$configs = array(
+    'socket'	=> '/var/run/mysqld/mysqld.sock',
+    'host'	=> 'localhost', // 为了让最终host参数能变成 p:localhost，只有这样才能生效
+    'persistent'=> true,
+    //...
+```
 
 ## DataObject类
 DataObject是对数据表的抽象，DataObject的静态方法相当于对数据表的操作，实例化的DataObject是数据库记录对象，调用DataObject的动态方法，相当于对数据库记录的操作。
