@@ -165,36 +165,50 @@ class Statement implements \IteratorAggregate, \Countable
 	}
 	
 	/**
-	 * 强制获得结果集
-	 * 
-	 * @return mixed
+	 * @return array
 	 */
-	public function fetch($rowsetClass = 'SplFixedArray'){
+	public function getDataObjectArray($rowClass, $readOnly = false){
 		if (!isset($this->_result)) $this->_query();
-		
-		$rowset = new $rowsetClass($this->_result->num_rows);
-		$index = 0;
+	
+		$rowset = [];
 		$this->_result->data_seek(0);
-		while($row = $this->_result->fetch_assoc()){
-			$rowset[$index++] = $row;
+		
+		while($data = $this->_result->fetch_assoc()){
+			$rowset[] = new $rowClass($data, true, $readOnly);
 		}
 		
 		return $rowset;
 	}
 	
 	/**
+	 * 
 	 * @return array
 	 */
-	public function fetchAllToArray(){
+	public function getAssocArray(){
+		if (!isset($this->_result)) $this->_query();
+	
+		$rowset = [];
+		$this->_result->data_seek(0);
+	
+		while($data = $this->_result->fetch_assoc()){
+			$rowset[] = $data;
+		}
+		return $rowset;
+	}
+	
+	/**
+	 * @return array
+	 */
+	public function getColumnArray($colno = 0){
 		if (!isset($this->_result)) $this->_query();
 	
 		$rowset = [];
 		$index = 0;
 		$this->_result->data_seek(0);
-		while($row = $this->_result->fetch_assoc()){
-			$rowset[$index++] = $row;
+		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
+			$rowset[$index++] = $data[$colno];
 		}
-		
+	
 		return $rowset;
 	}
 	

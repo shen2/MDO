@@ -1095,13 +1095,13 @@ class Select extends Query
 	}
 	
 	/**
-	 * Fetches all SQL result rows as a sequential array.
+	 * Fetches all SQL result rows as a generator.
 	 * Uses the current fetchMode for the adapter.
 	 *
 	 * @param mixed				 $fetchMode Override current fetch mode.
 	 * @return \Generator
 	 */
-	public function fetchAll()
+	public function yieldAll()
 	{
 		$stmt = $this->_adapter->newStatement($this);
 		if (isset($this->_table)){
@@ -1113,7 +1113,7 @@ class Select extends Query
 	}
 
 	/**
-	 * Fetches all SQL result rows as an associative array.
+	 * Fetches all SQL result rows as a generator.
 	 *
 	 * The first column is the key, the entire row array is the
 	 * value.  You should construct the query to be sure that
@@ -1121,41 +1121,41 @@ class Select extends Query
 	 * rows with duplicate values in the first column will
 	 * overwrite previous data.
 	 *
-	 * @return Generator
+	 * @return \Generator
 	 */
-	public function fetchAssoc()
+	public function yieldAssoc()
 	{
 		return $this->_adapter->newStatement($this)->getAssocGenerator();
 	}
 
 	/**
-	 * Fetches the first column of all SQL result rows as an array.
+	 * Fetches the first column of all SQL result rows as a generator.
 	 *
 	 * @return \Generator
 	 */
-	public function fetchCol()
+	public function yieldCol()
 	{
 		return $this->_adapter->newStatement($this)->getColumnGenerator(0);
 	}
 
 	/**
-	 * Fetches all SQL result rows as an array of key-value pairs.
+	 * Fetches all SQL result rows as a generator of key-value pairs.
 	 *
 	 * The first column is the key, the second column is the
 	 * value.
 	 *
 	 * @return \Generator
 	 */
-	public function fetchPairs()
+	public function yieldPairs()
 	{
 		return $this->_adapter->newStatement($this)->getKeyPairGenerator();
 	}
 	
 	/**
-	 * 
+	 * 将第一列作为key，所有的列作为value
 	 * @return \Generator
 	 */
-	public function fetchAssocMap()
+	public function yieldAssocMap()
 	{
 		return $this->_adapter->newStatement($this)->getAssocMapGenerator();
 	}
@@ -1165,7 +1165,7 @@ class Select extends Query
 	 * @param string $func
 	 * @return \Generator
 	 */
-	public function fetchFunc($func){
+	public function yieldFunc($func){
 		return $this->_adapter->newStatement($this)->getFuncGenerator($func);
 	}
 	
@@ -1175,8 +1175,23 @@ class Select extends Query
 	 * @param array $ctor_args
 	 * @return \Generator
 	 */
-	public function fetchClass($class, $ctor_args = array()){
+	public function yieldClass($class, $ctor_args = array()){
 		return $this->_adapter->newStatement($this)->getObjectGenerator($class, $ctor_args);
+	}
+	
+	/**
+	 * 
+	 * @return array
+	 */
+	public function fetchAll()
+	{
+		$stmt = $this->_adapter->newStatement($this);
+		if (isset($this->_table)){
+			return $stmt->getDataObjectArray($this->_table, $this->isReadOnly());
+		}
+		else{
+			return $stmt->getAssocArray();
+		}
 	}
 	
 	/**
