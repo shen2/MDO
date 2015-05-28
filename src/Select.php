@@ -1195,6 +1195,73 @@ class Select extends Query
 	}
 	
 	/**
+	 * Fetches all SQL result rows as an array.
+	 *
+	 * The first column is the key, the entire row array is the
+	 * value.  You should construct the query to be sure that
+	 * the first column contains unique values, or else
+	 	* rows with duplicate values in the first column will
+	 * overwrite previous data.
+	 *
+	 * @return array
+	 */
+	public function fetchAssoc()
+	{
+		return $this->_adapter->newStatement($this)->getAssocArray();
+	}
+	
+	/**
+	 * Fetches the first column of all SQL result rows as an array.
+	 *
+	 * @return array
+	 */
+	public function fetchCol()
+	{
+		return $this->_adapter->newStatement($this)->getColumnArray(0);
+	}
+	
+	/**
+	 * Fetches all SQL result rows as an array of key-value pairs.
+	 *
+	 * The first column is the key, the second column is the
+	 * value.
+	 *
+	 * @return array
+	 */
+	public function fetchPairs()
+	{
+		return $this->_adapter->newStatement($this)->getKeyPairArray();
+	}
+	
+	/**
+	 * 将第一列作为key，所有的列作为value
+	 * @return array
+	 */
+	public function fetchAssocMap()
+	{
+		return $this->_adapter->newStatement($this)->getAssocMapArray();
+	}
+	
+	/**
+	 * 以回调函数的方式获取
+	 * @param string $func
+	 * @return array
+	 */
+	public function fetchFunc($func){
+		return $this->_adapter->newStatement($this)->getFuncArray($func);
+	}
+	
+	/**
+	 * 以自定义类的方式获取
+	 * @param string $class
+	 * @param array $ctor_args
+	 * @return array
+	 */
+	public function fetchClass($class, $ctor_args = array()){
+		return $this->_adapter->newStatement($this)->getObjectArray($class, $ctor_args);
+	}
+	
+	/**
 	 * Fetches the first row of the SQL result.
 	 * Uses the current fetchMode for the adapter.
 	 *

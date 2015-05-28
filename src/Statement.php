@@ -165,22 +165,6 @@ class Statement implements \IteratorAggregate, \Countable
 	}
 	
 	/**
-	 * @return array
-	 */
-	public function getDataObjectArray($rowClass, $readOnly = false){
-		if (!isset($this->_result)) $this->_query();
-	
-		$rowset = [];
-		$this->_result->data_seek(0);
-		
-		while($data = $this->_result->fetch_assoc()){
-			$rowset[] = new $rowClass($data, true, $readOnly);
-		}
-		
-		return $rowset;
-	}
-	
-	/**
 	 * 
 	 * @return array
 	 */
@@ -199,6 +183,21 @@ class Statement implements \IteratorAggregate, \Countable
 	/**
 	 * @return array
 	 */
+	public function getAssocMapArray(){
+		if (!isset($this->_result)) $this->_query();
+	
+		$rowset = [];
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_array(\MYSQLI_ASSOC)){
+			$key = current($data);
+			$rowset[$key] = $data;
+		}
+		return $rowset;
+	}
+	
+	/**
+	 * @return array
+	 */
 	public function getColumnArray($colno = 0){
 		if (!isset($this->_result)) $this->_query();
 	
@@ -209,6 +208,64 @@ class Statement implements \IteratorAggregate, \Countable
 			$rowset[$index++] = $data[$colno];
 		}
 	
+		return $rowset;
+	}
+	
+	/**
+	 * @return array
+	 */
+	public function getDataObjectArray($rowClass, $readOnly = false){
+		if (!isset($this->_result)) $this->_query();
+	
+		$rowset = [];
+		$this->_result->data_seek(0);
+	
+		while($data = $this->_result->fetch_assoc()){
+			$rowset[] = new $rowClass($data, true, $readOnly);
+		}
+	
+		return $rowset;
+	}
+	
+	/**
+	 * @return array
+	 */
+	public function getFuncArray($func){
+		if (!isset($this->_result)) $this->_query();
+	
+		$rowset = [];
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_assoc()){
+			$rowset[] = $func($data);
+		}
+		return $rowset;
+	}
+	
+	/**
+	 * @return array
+	 */
+	public function getKeyPairArray(){
+		if (!isset($this->_result)) $this->_query();
+	
+		$rowset = [];
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
+			$rowset[$data[0]] = $data[1];
+		}
+		return $rowset;
+	}
+	
+	/**
+	 * @return array
+	 */
+	public function getObjectArray($rowClass, $params){
+		if (!isset($this->_result)) $this->_query();
+	
+		$rowset = [];
+		$this->_result->data_seek(0);
+		while($row = $this->_result->fetch_object($rowClass, $params)){
+			$rowset[] = $row;
+		}
 		return $rowset;
 	}
 	

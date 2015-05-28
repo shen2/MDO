@@ -546,7 +546,7 @@ abstract class DataObject extends \ArrayObject
 		
 		return static::select()
 			->where(implode(' OR ', $whereOrTerms))
-			->fetchAll();
+			->yieldAll();
 	}
 	
 	/**
@@ -559,8 +559,7 @@ abstract class DataObject extends \ArrayObject
 	
 		return static::select()
 			->where(static::$_db->quoteIdentifier(static::$_primary[0], true) . ' in (' . static::$_db->quoteArray($keys) . ')')
-			->fetchAll()
-			->fetch();
+			->fetchAll();
 	}
 
 	/**
