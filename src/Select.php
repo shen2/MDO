@@ -1090,7 +1090,7 @@ class Select extends Query
 	/**
 	 * @return Statement
 	 */
-	public function getStatement(){
+	public function dispatch(){
 		return $this->_adapter->newStatement($this); 
 	}
 	
@@ -1105,7 +1105,7 @@ class Select extends Query
 	{
 		$stmt = $this->_adapter->newStatement($this);
 		if (isset($this->_table)){
-			return $stmt->getDataObjectGenerator($this->_table, true, $this->isReadOnly());
+			return $stmt->getDataObjectGenerator($this->_table, $this->isReadOnly());
 		}
 		else{
 			return $stmt->getAssocGenerator();

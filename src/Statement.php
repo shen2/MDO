@@ -114,12 +114,12 @@ class Statement implements \IteratorAggregate, \Countable
 	/**
 	 * @return \Generator
 	 */
-	public function getDataObjectGenerator($rowClass, $stored, $readOnly){
+	public function getDataObjectGenerator($rowClass, $readOnly = false){
 		if (!isset($this->_result)) $this->_query();
 		
 		$this->_result->data_seek(0);
 		while($data = $this->_result->fetch_assoc()){
-			yield new $rowClass($data, $stored, $readOnly);
+			yield new $rowClass($data, true, $readOnly);
 		}
 	}
 	
