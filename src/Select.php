@@ -1286,27 +1286,20 @@ class Select extends Query
 	 * Fetches the first row of the SQL result.
 	 * Uses the current fetchMode for the adapter.
 	 *
-	 * @param mixed				 $fetchMode Override current fetch mode.
 	 * @return array|DataObject
 	 */
-	public function fetchRow($fetchMode = null)
+	public function fetchRow()
 	{
-		if (isset($this->_table)){
-			$this->_parts[self::LIMIT_COUNT]  = 1;
-			
-			$result = $this->_adapter->query($this->assemble());
-			
-			if ($result->num_rows == 0){
-				return null;
-			}
-			
+		$this->_parts[self::LIMIT_COUNT]  = 1;
+		$result = $this->_adapter->newStatement($this)->getResult();
+		$data = $result->fetch_assoc();
+		
+		if (isset($this->_table) && $data !== null){
 			$rowClass = $this->_table;
-			
-			return new $rowClass($result->fetch_assoc(), true, $this->isReadOnly());
+			return new $rowClass($data, true, $this->isReadOnly());
 		}
 		
-		$result = $this->_adapter->query($this->assemble());
-		return $result->fetch_assoc();
+		return $data;
 	}
 	
 	/**
@@ -1316,8 +1309,8 @@ class Select extends Query
 	 */
 	public function fetchOne()
 	{
-		$result = $this->_adapter->query($this->assemble());
-		$row = $result->fetch_array(\MYSQLI_NUM);
+		$result = $this->_adapter->newStatement($this)->getResult();
+		$row = $result->fetch_row();
 		return $row === null ? null : $row[0];
 	}
 	
