@@ -1137,6 +1137,16 @@ class Select extends Query
 	{
 		return $this->_adapter->newStatement($this)->getColumnGenerator(0);
 	}
+	
+	/**
+	 * Fetches $name field of all SQL result rows as a generator.
+	 *
+	 * @return \Generator
+	 */
+	public function yieldField($name)
+	{
+		return $this->_adapter->newStatement($this)->getFieldGenerator($name);
+	}
 
 	/**
 	 * Fetches all SQL result rows as a generator of key-value pairs.
@@ -1218,6 +1228,17 @@ class Select extends Query
 	public function fetchCol()
 	{
 		return $this->_adapter->newStatement($this)->getColumnArray(0);
+	}
+	
+	/**
+	 * Fetches $name field of all SQL result rows as an array.
+	 *
+	 * @param string $name
+	 * @return array
+	 */
+	public function fetchField($name)
+	{
+		return $this->_adapter->newStatement($this)->getFieldArray($name);
 	}
 	
 	/**

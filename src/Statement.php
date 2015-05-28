@@ -78,21 +78,36 @@ class Statement implements \IteratorAggregate, \Countable
 		if (!isset($this->_result)) $this->_query();
 		
 		$this->_result->data_seek(0);
-		while($data = $this->_result->fetch_array(\MYSQLI_ASSOC)){
+		while($data = $this->_result->fetch_assoc()){
 			$key = current($data);
 			yield $key => $data;
 		}
 	}
 	
 	/**
+	 * @param int $colno
 	 * @return \Generator
 	 */
 	public function getColumnGenerator($colno = 0){
 		if (!isset($this->_result)) $this->_query();
 		
 		$this->_result->data_seek(0);
-		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
+		while($data = $this->_result->fetch_row()){
 			yield $data[$colno];
+		}
+	}
+	
+	/**
+	 * 
+	 * @param string $name
+	 * @return \Generator
+	 */
+	public function getFieldGenerator($name){
+		if (!isset($this->_result)) $this->_query();
+	
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_assoc()){
+			yield $data[$name];
 		}
 	}
 	
@@ -127,7 +142,7 @@ class Statement implements \IteratorAggregate, \Countable
 		if (!isset($this->_result)) $this->_query();
 		
 		$this->_result->data_seek(0);
-		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
+		while($data = $this->_result->fetch_row()){
 			yield $data[0] => $data[1];
 		}
 	}
@@ -188,7 +203,7 @@ class Statement implements \IteratorAggregate, \Countable
 	
 		$rowset = [];
 		$this->_result->data_seek(0);
-		while($data = $this->_result->fetch_array(\MYSQLI_ASSOC)){
+		while($data = $this->_result->fetch_assoc()){
 			$key = current($data);
 			$rowset[$key] = $data;
 		}
@@ -204,8 +219,24 @@ class Statement implements \IteratorAggregate, \Countable
 		$rowset = [];
 		$index = 0;
 		$this->_result->data_seek(0);
-		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
+		while($data = $this->_result->fetch_row()){
 			$rowset[$index++] = $data[$colno];
+		}
+	
+		return $rowset;
+	}
+	
+	/**
+	 * @return array
+	 */
+	public function getFieldArray($name){
+		if (!isset($this->_result)) $this->_query();
+	
+		$rowset = [];
+		$index = 0;
+		$this->_result->data_seek(0);
+		while($data = $this->_result->fetch_assoc()){
+			$rowset[$index++] = $data[$name];
 		}
 	
 		return $rowset;
@@ -249,7 +280,7 @@ class Statement implements \IteratorAggregate, \Countable
 	
 		$rowset = [];
 		$this->_result->data_seek(0);
-		while($data = $this->_result->fetch_array(\MYSQLI_NUM)){
+		while($data = $this->_result->fetch_row()){
 			$rowset[$data[0]] = $data[1];
 		}
 		return $rowset;
