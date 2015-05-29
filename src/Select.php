@@ -1091,7 +1091,7 @@ class Select extends Query
 	 * @return Statement
 	 */
 	public function dispatch(){
-		return $this->_adapter->newStatement($this); 
+		return $this->_adapter->newStatement($this);
 	}
 	
 	/**
@@ -1195,7 +1195,7 @@ class Select extends Query
 	 */
 	public function fetchAll()
 	{
-		$stmt = $this->_adapter->newStatement($this);
+		$stmt = $this->_adapter->newStatement($this, false);
 		if (isset($this->_table)){
 			return $stmt->getDataObjectArray($this->_table, $this->isReadOnly());
 		}
@@ -1217,7 +1217,7 @@ class Select extends Query
 	 */
 	public function fetchAssoc()
 	{
-		return $this->_adapter->newStatement($this)->getAssocArray();
+		return $this->_adapter->newStatement($this, false)->getAssocArray();
 	}
 	
 	/**
@@ -1227,7 +1227,7 @@ class Select extends Query
 	 */
 	public function fetchCol()
 	{
-		return $this->_adapter->newStatement($this)->getColumnArray(0);
+		return $this->_adapter->newStatement($this, false)->getColumnArray(0);
 	}
 	
 	/**
@@ -1238,7 +1238,7 @@ class Select extends Query
 	 */
 	public function fetchField($name)
 	{
-		return $this->_adapter->newStatement($this)->getFieldArray($name);
+		return $this->_adapter->newStatement($this, false)->getFieldArray($name);
 	}
 	
 	/**
@@ -1251,7 +1251,7 @@ class Select extends Query
 	 */
 	public function fetchPairs()
 	{
-		return $this->_adapter->newStatement($this)->getKeyPairArray();
+		return $this->_adapter->newStatement($this, false)->getKeyPairArray();
 	}
 	
 	/**
@@ -1260,7 +1260,7 @@ class Select extends Query
 	 */
 	public function fetchAssocMap()
 	{
-		return $this->_adapter->newStatement($this)->getAssocMapArray();
+		return $this->_adapter->newStatement($this, false)->getAssocMapArray();
 	}
 	
 	/**
@@ -1269,7 +1269,7 @@ class Select extends Query
 	 * @return array
 	 */
 	public function fetchFunc($func){
-		return $this->_adapter->newStatement($this)->getFuncArray($func);
+		return $this->_adapter->newStatement($this, false)->getFuncArray($func);
 	}
 	
 	/**
@@ -1279,7 +1279,7 @@ class Select extends Query
 	 * @return array
 	 */
 	public function fetchClass($class, $ctor_args = array()){
-		return $this->_adapter->newStatement($this)->getObjectArray($class, $ctor_args);
+		return $this->_adapter->newStatement($this, false)->getObjectArray($class, $ctor_args);
 	}
 	
 	/**
@@ -1291,9 +1291,9 @@ class Select extends Query
 	public function fetchRow()
 	{
 		$this->_parts[self::LIMIT_COUNT]  = 1;
-		$result = $this->_adapter->newStatement($this)->getResult();
+		$result = $this->_adapter->newStatement($this, false)->getResult();
 		$data = $result->fetch_assoc();
-		
+		$result->close();
 		if (isset($this->_table) && $data !== null){
 			$rowClass = $this->_table;
 			return new $rowClass($data, true, $this->isReadOnly());
@@ -1309,8 +1309,9 @@ class Select extends Query
 	 */
 	public function fetchOne()
 	{
-		$result = $this->_adapter->newStatement($this)->getResult();
+		$result = $this->_adapter->newStatement($this, false)->getResult();
 		$row = $result->fetch_row();
+		$result->close();
 		return $row === null ? null : $row[0];
 	}
 	

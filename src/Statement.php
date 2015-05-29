@@ -18,17 +18,22 @@ class Statement implements \IteratorAggregate, \Countable
 	protected $_result = null;
 	
 	/**
+	 * 
+	 * @var bool
+	 */
+	protected $_storeResult;
+	
+	/**
 	 * 构造函数
 	 * 
 	 * @param $connection
 	 * @param $select
-	 * @param $fetchMode
-	 * @param $fetchArgument
-	 * @param $ctorArgs
+	 * @param $storeResult
 	 */
-	public function __construct($connection, $select){
+	public function __construct($connection, $select, $storeResult = true){
 		$this->_connection = $connection;
 		$this->_select = $select;
+		$this->_storeResult = $storeResult;
 	}
 	
 	public function __toString(){
@@ -52,6 +57,10 @@ class Statement implements \IteratorAggregate, \Countable
 		return $this;
 	}
 	
+	public function getStoreResult(){
+		return $this->_storeResult;
+	}
+	
 	/**
 	 * @return \Generator
 	 */
@@ -65,10 +74,11 @@ class Statement implements \IteratorAggregate, \Countable
 	public function getAssocGenerator(){
 		if (!isset($this->_result)) $this->_query();
 		
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($row = $this->_result->fetch_assoc()){
 			yield $row;
 		}
+		if (!$this->_storeResult) $this->_result->free();
 	}
 	
 	/**
@@ -77,11 +87,12 @@ class Statement implements \IteratorAggregate, \Countable
 	public function getAssocMapGenerator(){
 		if (!isset($this->_result)) $this->_query();
 		
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_assoc()){
 			$key = current($data);
 			yield $key => $data;
 		}
+		if (!$this->_storeResult) $this->_result->free();
 	}
 	
 	/**
@@ -91,10 +102,11 @@ class Statement implements \IteratorAggregate, \Countable
 	public function getColumnGenerator($colno = 0){
 		if (!isset($this->_result)) $this->_query();
 		
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_row()){
 			yield $data[$colno];
 		}
+		if (!$this->_storeResult) $this->_result->free();
 	}
 	
 	/**
@@ -105,10 +117,11 @@ class Statement implements \IteratorAggregate, \Countable
 	public function getFieldGenerator($name){
 		if (!isset($this->_result)) $this->_query();
 	
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_assoc()){
 			yield $data[$name];
 		}
+		if (!$this->_storeResult) $this->_result->free();
 	}
 	
 	/**
@@ -117,10 +130,11 @@ class Statement implements \IteratorAggregate, \Countable
 	public function getDataObjectGenerator($rowClass, $readOnly = false){
 		if (!isset($this->_result)) $this->_query();
 		
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_assoc()){
 			yield new $rowClass($data, true, $readOnly);
 		}
+		if (!$this->_storeResult) $this->_result->free();
 	}
 	
 	/**
@@ -129,10 +143,11 @@ class Statement implements \IteratorAggregate, \Countable
 	public function getFuncGenerator($func){
 		if (!isset($this->_result)) $this->_query();
 		
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_assoc()){
 			yield $func($data);
 		}
+		if (!$this->_storeResult) $this->_result->free();
 	}
 	
 	/**
@@ -141,10 +156,11 @@ class Statement implements \IteratorAggregate, \Countable
 	public function getKeyPairGenerator(){
 		if (!isset($this->_result)) $this->_query();
 		
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_row()){
 			yield $data[0] => $data[1];
 		}
+		if (!$this->_storeResult) $this->_result->free();
 	}
 	
 	/**
@@ -153,10 +169,11 @@ class Statement implements \IteratorAggregate, \Countable
 	public function getObjectGenerator($rowClass, $params){
 		if (!isset($this->_result)) $this->_query();
 		
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($row = $this->_result->fetch_object($rowClass, $params)){
 			yield $row;
 		}
+		if (!$this->_storeResult) $this->_result->free();
 	}
 	
 	public function assemble(){
@@ -187,11 +204,12 @@ class Statement implements \IteratorAggregate, \Countable
 		if (!isset($this->_result)) $this->_query();
 	
 		$rowset = [];
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 	
 		while($data = $this->_result->fetch_assoc()){
 			$rowset[] = $data;
 		}
+		if (!$this->_storeResult) $this->_result->free();
 		return $rowset;
 	}
 	
@@ -202,11 +220,12 @@ class Statement implements \IteratorAggregate, \Countable
 		if (!isset($this->_result)) $this->_query();
 	
 		$rowset = [];
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_assoc()){
 			$key = current($data);
 			$rowset[$key] = $data;
 		}
+		if (!$this->_storeResult) $this->_result->free();
 		return $rowset;
 	}
 	
@@ -218,11 +237,11 @@ class Statement implements \IteratorAggregate, \Countable
 	
 		$rowset = [];
 		$index = 0;
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_row()){
 			$rowset[$index++] = $data[$colno];
 		}
-	
+		if (!$this->_storeResult) $this->_result->free();
 		return $rowset;
 	}
 	
@@ -234,11 +253,11 @@ class Statement implements \IteratorAggregate, \Countable
 	
 		$rowset = [];
 		$index = 0;
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_assoc()){
 			$rowset[$index++] = $data[$name];
 		}
-	
+		if (!$this->_storeResult) $this->_result->free();
 		return $rowset;
 	}
 	
@@ -249,12 +268,12 @@ class Statement implements \IteratorAggregate, \Countable
 		if (!isset($this->_result)) $this->_query();
 	
 		$rowset = [];
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 	
 		while($data = $this->_result->fetch_assoc()){
 			$rowset[] = new $rowClass($data, true, $readOnly);
 		}
-	
+		if (!$this->_storeResult) $this->_result->free();
 		return $rowset;
 	}
 	
@@ -265,10 +284,11 @@ class Statement implements \IteratorAggregate, \Countable
 		if (!isset($this->_result)) $this->_query();
 	
 		$rowset = [];
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_assoc()){
 			$rowset[] = $func($data);
 		}
+		if (!$this->_storeResult) $this->_result->free();
 		return $rowset;
 	}
 	
@@ -279,10 +299,11 @@ class Statement implements \IteratorAggregate, \Countable
 		if (!isset($this->_result)) $this->_query();
 	
 		$rowset = [];
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($data = $this->_result->fetch_row()){
 			$rowset[$data[0]] = $data[1];
 		}
+		if (!$this->_storeResult) $this->_result->free();
 		return $rowset;
 	}
 	
@@ -293,10 +314,11 @@ class Statement implements \IteratorAggregate, \Countable
 		if (!isset($this->_result)) $this->_query();
 	
 		$rowset = [];
-		$this->_result->data_seek(0);
+		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($row = $this->_result->fetch_object($rowClass, $params)){
 			$rowset[] = $row;
 		}
+		if (!$this->_storeResult) $this->_result->free();
 		return $rowset;
 	}
 	

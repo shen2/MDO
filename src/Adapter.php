@@ -521,8 +521,8 @@ class Adapter extends \mysqli
 		return $this->_isConnected;
 	}
 	
-	public function newStatement($sql){
-		return $this->_waitingQueue[] = new Statement($this, $sql);
+	public function newStatement($sql, $storeResult = true){
+		return $this->_waitingQueue[] = new Statement($this, $sql, $storeResult);
 	}
 
 	/**
@@ -546,7 +546,7 @@ class Adapter extends \mysqli
 		while($this->more_results()){
 			$this->next_result();
 			$statement = array_shift($this->_fetchingQueue);
-			$statement->setResult($this->store_result());
+			$statement->setResult($statement->getStoreResult() ? $this->store_result() : $this->use_result());
 			
 			if ($this->errno)
 				throw new AdapterException($this->error, $this->errno);
@@ -570,7 +570,7 @@ class Adapter extends \mysqli
 			$sql .= ";\n" . implode(";\n", $this->_waitingQueue);
 		
 		$this->multi_query($sql);
-		$statement->setResult($this->store_result());
+		$statement->setResult($statement->getStoreResult() ? $this->store_result() : $this->use_result());
 		
 		$this->_fetchingQueue = $this->_waitingQueue;
 		
