@@ -1162,15 +1162,6 @@ class Select extends Query
 	}
 	
 	/**
-	 * 将第一列作为key，所有的列作为value
-	 * @return \Generator
-	 */
-	public function yieldAssocMap()
-	{
-		return $this->_adapter->newStatement($this)->getAssocMapGenerator();
-	}
-	
-	/**
 	 * 以回调函数的方式获取
 	 * @param string $func
 	 * @return \Generator

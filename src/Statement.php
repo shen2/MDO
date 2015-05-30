@@ -52,13 +52,9 @@ class Statement implements \IteratorAggregate, \Countable
 		return $this->_result;
 	}
 	
-	public function setResult($result){
-		$this->_result = $result;
+	public function storeResult($db){
+		$this->_result = $this->_storeResult ? $db->store_result() : $db->use_result();
 		return $this;
-	}
-	
-	public function getStoreResult(){
-		return $this->_storeResult;
 	}
 	
 	/**
@@ -77,20 +73,6 @@ class Statement implements \IteratorAggregate, \Countable
 		if ($this->_storeResult) $this->_result->data_seek(0);
 		while($row = $this->_result->fetch_assoc()){
 			yield $row;
-		}
-		if (!$this->_storeResult) $this->_result->free();
-	}
-	
-	/**
-	 * @return \Generator
-	 */
-	public function getAssocMapGenerator(){
-		if (!isset($this->_result)) $this->_query();
-		
-		if ($this->_storeResult) $this->_result->data_seek(0);
-		while($data = $this->_result->fetch_assoc()){
-			$key = current($data);
-			yield $key => $data;
 		}
 		if (!$this->_storeResult) $this->_result->free();
 	}

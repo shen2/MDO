@@ -546,7 +546,7 @@ class Adapter extends \mysqli
 		while($this->more_results()){
 			$this->next_result();
 			$statement = array_shift($this->_fetchingQueue);
-			$statement->setResult($statement->getStoreResult() ? $this->store_result() : $this->use_result());
+			$statement->storeResult($this);
 			
 			if ($this->errno)
 				throw new AdapterException($this->error, $this->errno);
@@ -570,7 +570,7 @@ class Adapter extends \mysqli
 			$sql .= ";\n" . implode(";\n", $this->_waitingQueue);
 		
 		$this->multi_query($sql);
-		$statement->setResult($statement->getStoreResult() ? $this->store_result() : $this->use_result());
+		$statement->storeResult($this);
 		
 		$this->_fetchingQueue = $this->_waitingQueue;
 		
