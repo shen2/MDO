@@ -24,6 +24,12 @@ class Statement implements \IteratorAggregate, \Countable
 	protected $_storeResult;
 	
 	/**
+	 * Success Callbacks
+	 * @var array
+	 */
+	protected $_successCallbacks = [];
+	
+	/**
 	 * 构造函数
 	 * 
 	 * @param $connection
@@ -40,20 +46,33 @@ class Statement implements \IteratorAggregate, \Countable
 		return $this->_select->assemble();
 	}
 	
-	public function __call($name, $args){
-		$this->_query();
-		 
-		return call_user_func_array(array($this->_result, $name), $args);
-	}
-	
 	public function getResult(){
 		if (!isset($this->_result)) $this->_query();
 		
 		return $this->_result;
 	}
+
+	/**
+	 *
+	 * @param \Closure $callback
+	 * @return $this
+	 */
+	public function onSuccess($callback){
+		$this->_successCallbacks[] = $callback->bindTo($this);
+		return $this;
+	}
 	
+	/**
+	 * 
+	 * @param Adapter $db
+	 * @return \MDO\Statement
+	 */
 	public function storeResult($db){
 		$this->_result = $this->_storeResult ? $db->store_result() : $db->use_result();
+		
+		foreach($this->_successCallbacks as $callback)
+			$callback();
+		
 		return $this;
 	}
 	
