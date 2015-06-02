@@ -54,11 +54,11 @@ class Statement implements \IteratorAggregate, \Countable
 
 	/**
 	 *
-	 * @param \Closure $callback
+	 * @param callable $callback
 	 * @return $this
 	 */
 	public function onSuccess($callback){
-		$this->_successCallbacks[] = $callback->bindTo($this);
+		$this->_successCallbacks[] = $callback;
 		return $this;
 	}
 	
@@ -71,7 +71,7 @@ class Statement implements \IteratorAggregate, \Countable
 		$this->_result = $this->_storeResult ? $db->store_result() : $db->use_result();
 		
 		foreach($this->_successCallbacks as $callback)
-			$callback();
+			$callback($this);
 		
 		return $this;
 	}

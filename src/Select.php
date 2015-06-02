@@ -1090,8 +1090,8 @@ class Select extends Query
 	/**
 	 * @return Statement
 	 */
-	public function dispatch(){
-		return $this->_adapter->newStatement($this);
+	public function dispatch($storeResult = true){
+		return $this->_adapter->newStatement($this, $storeResult);
 	}
 	
 	/**

@@ -544,9 +544,14 @@ class Adapter extends \mysqli
 	 */
 	public function flushQueue($untilStatement = null){
 		while($this->more_results()){
-			$this->next_result();
 			$statement = array_shift($this->_fetchingQueue);
+			
+			if ($this->_profiler) $q = $this->_profiler->queryStart($statement->assemble());
+			
+			$this->next_result();
 			$statement->storeResult($this);
+			
+			if ($this->_profiler) $this->_profiler->queryEnd($q);
 			
 			if ($this->errno)
 				throw new AdapterException($this->error, $this->errno);
@@ -566,11 +571,16 @@ class Adapter extends \mysqli
 			unset($this->_waitingQueue[$keys[0]]);
 		
 		$sql = $statement->assemble();
+		
+		if ($this->_profiler) $q = $this->_profiler->queryStart($sql);
+		
 		if (count($this->_waitingQueue))
 			$sql .= ";\n" . implode(";\n", $this->_waitingQueue);
 		
 		$this->multi_query($sql);
 		$statement->storeResult($this);
+		
+		if ($this->_profiler) $this->_profiler->queryEnd($q);
 		
 		$this->_fetchingQueue = $this->_waitingQueue;
 		
