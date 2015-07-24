@@ -326,11 +326,26 @@ class Select extends Query
 	{
 		return $this->_join(self::NATURAL_JOIN, $name, null, $cols, $schema);
 	}
-	
-	public function forceIndex($indexList, $for = null){
-		$this->_parts[self::INDEX][] = self::SQL_FORCE_INDEX . ($for ? ' FOR ' . $for : '') . ' (' . implode(',', (array) $indexList) . ')';
-		return $this;
-	}
+
+        public function forceIndex($indexList, $for = null, $table = null){
+            $indexSql = self::SQL_FORCE_INDEX . ($for ? ' FOR ' . $for : '') . ' (' . implode(',', (array) $indexList) . ')';
+            return $this->_index($indexSql, $table);
+        }
+
+        public function useIndex($indexList, $for = null, $table = null){
+            $indexSql = self::SQL_USE_INDEX . ($for ? ' FOR ' . $for : '') . ' (' . implode(',', (array) $indexList) . ')';
+            return $this->_index($indexSql, $table);
+        }
+
+        public function ignoreIndex($indexList, $for = null, $table = null){
+            $indexSql = self::SQL_IGNORE_INDEX . ($for ? ' FOR ' . $for : '') . ' (' . implode(',', (array) $indexList) . ')';
+            return $this->_index($indexSql, $table);
+        }
+
+        public function _index($indexSql, $table = null){
+            $this->_parts[self::INDEX][$table][] = $indexSql;
+            return $this;
+        }
 
 	/**
 	 * Adds grouping to the query.
@@ -889,6 +904,12 @@ class Select extends Query
 			$tmp .= $this->_getQuotedSchema($table['schema']);
 			$tmp .= $this->_getQuotedTable($table['tableName'], $correlationName);
 
+                        //added by zhu
+                        if(isset($this->_parts[self::INDEX][$table['tableName']])){
+                            $tmp .= ' ' . implode(' ', $this->_parts[self::INDEX][$table['tableName']]);
+                            unset($this->_parts[self::INDEX][$table['tableName']]);
+                        }
+
 			// Add join conditions (if applicable)
 			if (!empty($from) && ! empty($table['joinCondition'])) {
 				$tmp .= ' ' . self::SQL_ON . ' ' . $table['joinCondition'];
@@ -934,7 +955,7 @@ class Select extends Query
 	protected function _renderIndex(){
 		$sql = '';
 		foreach ($this->_parts[self::INDEX] as $part) {
-			$sql .= ' ' . $part;
+			$sql .= ' ' . implode(' ', $part);
 		}
 		
 		return $sql;

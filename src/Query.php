@@ -22,7 +22,9 @@ class Query {
 	const SQL_UNION_ALL  = 'UNION ALL';
 	const SQL_FROM	   = 'FROM';
 	const SQL_WHERE	  = 'WHERE';
-	const SQL_FORCE_INDEX= 'FORCE INDEX';
+        const SQL_FORCE_INDEX = 'FORCE INDEX';
+        const SQL_USE_INDEX = 'USE INDEX';
+        const SQL_IGNORE_INDEX = 'IGNORE INDEX';
 	const SQL_DISTINCT   = 'DISTINCT';
 	const SQL_GROUP_BY   = 'GROUP BY';
 	const SQL_ORDER_BY   = 'ORDER BY';
