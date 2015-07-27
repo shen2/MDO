@@ -40,7 +40,6 @@ class Select extends Query
 		self::COLUMNS	  => array(),
 		self::UNION		=> array(),
 		self::FROM		 => array(),
-		self::INDEX		=> array(),
 		self::WHERE		=> array(),
 		self::GROUP		=> array(),
 		self::HAVING	   => array(),
@@ -343,7 +342,7 @@ class Select extends Query
         }
 
         public function _index($indexSql, $table = null){
-            $this->_parts[self::INDEX][$table][] = $indexSql;
+            $this->_parts[self::FROM][$table]['index'][] = $indexSql;
             return $this;
         }
 
@@ -905,9 +904,8 @@ class Select extends Query
 			$tmp .= $this->_getQuotedTable($table['tableName'], $correlationName);
 
                         //added by zhu
-                        if(isset($this->_parts[self::INDEX][$table['tableName']])){
-                            $tmp .= ' ' . implode(' ', $this->_parts[self::INDEX][$table['tableName']]);
-                            unset($this->_parts[self::INDEX][$table['tableName']]);
+                        if (!empty($this->_parts[self::FROM][$correlationName]['index'])){
+                            $tmp .= ' ' . implode(' ', $this->_parts[self::FROM][$correlationName]['index']);
                         }
 
 			// Add join conditions (if applicable)
@@ -951,15 +949,7 @@ class Select extends Query
 
 		return $sql;
 	}
-	
-	protected function _renderIndex(){
-		$sql = '';
-		foreach ($this->_parts[self::INDEX] as $part) {
-			$sql .= ' ' . implode(' ', $part);
-		}
-		
-		return $sql;
-	}
+
 
 	/**
 	 * Render GROUP clause
