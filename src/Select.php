@@ -40,7 +40,6 @@ class Select extends Query
 		self::COLUMNS	  => array(),
 		self::UNION		=> array(),
 		self::FROM		 => array(),
-		self::INDEX		=> array(),
 		self::WHERE		=> array(),
 		self::GROUP		=> array(),
 		self::HAVING	   => array(),
@@ -326,11 +325,27 @@ class Select extends Query
 	{
 		return $this->_join(self::NATURAL_JOIN, $name, null, $cols, $schema);
 	}
-	
-	public function forceIndex($indexList, $for = null){
-		$this->_parts[self::INDEX][] = self::SQL_FORCE_INDEX . ($for ? ' FOR ' . $for : '') . ' (' . implode(',', (array) $indexList) . ')';
-		return $this;
-	}
+
+        public function forceIndex($indexList, $for = null, $table = null){
+            $indexSql = self::SQL_FORCE_INDEX . ($for ? ' FOR ' . $for : '') . ' (' . implode(',', (array) $indexList) . ')';
+            return $this->_index($indexSql, $table);
+        }
+
+        public function useIndex($indexList, $for = null, $table = null){
+            $indexSql = self::SQL_USE_INDEX . ($for ? ' FOR ' . $for : '') . ' (' . implode(',', (array) $indexList) . ')';
+            return $this->_index($indexSql, $table);
+        }
+
+        public function ignoreIndex($indexList, $for = null, $table = null){
+            $indexSql = self::SQL_IGNORE_INDEX . ($for ? ' FOR ' . $for : '') . ' (' . implode(',', (array) $indexList) . ')';
+            return $this->_index($indexSql, $table);
+        }
+
+        public function _index($indexSql, $table = null){
+            $table = $table ? $table : key($this->_parts[self::FROM]);
+            $this->_parts[self::FROM][$table]['index'][] = $indexSql;
+            return $this;
+        }
 
 	/**
 	 * Adds grouping to the query.
@@ -889,6 +904,11 @@ class Select extends Query
 			$tmp .= $this->_getQuotedSchema($table['schema']);
 			$tmp .= $this->_getQuotedTable($table['tableName'], $correlationName);
 
+                        //added by zhu
+                        if (!empty($this->_parts[self::FROM][$correlationName]['index'])){
+                            $tmp .= ' ' . implode(' ', $this->_parts[self::FROM][$correlationName]['index']);
+                        }
+
 			// Add join conditions (if applicable)
 			if (!empty($from) && ! empty($table['joinCondition'])) {
 				$tmp .= ' ' . self::SQL_ON . ' ' . $table['joinCondition'];
@@ -930,15 +950,7 @@ class Select extends Query
 
 		return $sql;
 	}
-	
-	protected function _renderIndex(){
-		$sql = '';
-		foreach ($this->_parts[self::INDEX] as $part) {
-			$sql .= ' ' . $part;
-		}
-		
-		return $sql;
-	}
+
 
 	/**
 	 * Render GROUP clause
