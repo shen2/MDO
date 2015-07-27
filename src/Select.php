@@ -342,6 +342,7 @@ class Select extends Query
         }
 
         public function _index($indexSql, $table = null){
+            $table = $table ? $table : key($this->_parts[self::FROM]);
             $this->_parts[self::FROM][$table]['index'][] = $indexSql;
             return $this;
         }
