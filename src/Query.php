@@ -47,7 +47,7 @@ class Query {
 	/**
 	 * Table name that created this select object
 	 *
-	 * @var string
+	 * @var Table
 	 */
 	protected $_table;
 	
@@ -100,7 +100,7 @@ class Query {
 	/**
 	 * Return the table that created this select object
 	 *
-	 * @return DataObject_Abstract
+	 * @return Table
 	 */
 	public function getTable()
 	{
@@ -110,7 +110,7 @@ class Query {
 	/**
 	 * Sets the primary table name and retrieves the table schema.
 	 *
-	 * @param string $table
+	 * @param Table $table
 	 * @return Select This Select object.
 	 */
 	public function setTable($table)

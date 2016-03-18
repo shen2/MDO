@@ -532,12 +532,11 @@ class Select extends Query
 		 * Ensures that only columns from the primary DataObject are returned in the result.
 		 */
 		if (isset($this->_table) && count($this->_parts[self::UNION]) == 0) {
-			$table = $this->_table;
-			$info = $table::info();
+			$info = $this->_table->info();
 			
 			// If no fields are specified we assume all fields from primary table
 			if (empty($this->_parts[Select::COLUMNS])) {
-				$this->joinInner($info[DataObject::NAME], null, self::SQL_WILDCARD, $info[DataObject::SCHEMA]);
+				$this->joinInner($info[Table::NAME], null, self::SQL_WILDCARD, $info[Table::SCHEMA]);
 			}
 		}
 		
@@ -1115,13 +1114,11 @@ class Select extends Query
 	 */
 	public function yieldAll()
 	{
-		$stmt = $this->_adapter->newStatement($this);
-		if (isset($this->_table)){
-			return $stmt->getDataObjectGenerator($this->_table, $this->isReadOnly());
-		}
-		else{
-			return $stmt->getAssocGenerator();
-		}
+	    if (!isset($this->_table)){
+	        throw new SelectException("_table is required");
+	    }
+	    
+	    return $this->_adapter->newStatement($this)->getDataObjectGenerator($this->_table->getRowClass(), $this->isReadOnly());
 	}
 
 	/**
@@ -1198,13 +1195,11 @@ class Select extends Query
 	 */
 	public function fetchAll()
 	{
-		$stmt = $this->_adapter->newStatement($this, false);
-		if (isset($this->_table)){
-			return $stmt->getDataObjectArray($this->_table, $this->isReadOnly());
-		}
-		else{
-			return $stmt->getAssocArray();
-		}
+	    if (!isset($this->_table)){
+	        throw new SelectException("_table is required");
+	    }
+	    
+	    return $this->_adapter->newStatement($this, false)->getDataObjectArray($this->_table->getRowClass(), $this->isReadOnly());
 	}
 	
 	/**
@@ -1298,7 +1293,7 @@ class Select extends Query
 		$data = $result->fetch_assoc();
 		$result->close();
 		if (isset($this->_table) && $data !== null){
-			$rowClass = $this->_table;
+			$rowClass = $this->_table->getRowClass();
 			return new $rowClass($data, true, $this->isReadOnly());
 		}
 		
