@@ -1118,7 +1118,7 @@ class Select extends Query
 	        throw new SelectException("_table is required");
 	    }
 	    
-	    return $this->_adapter->newStatement($this)->getDataObjectGenerator($this->_table->getRowClass(), $this->isReadOnly());
+	    return $this->_adapter->newStatement($this)->getDataObjectGenerator($this->_table, $this->isReadOnly());
 	}
 
 	/**
@@ -1199,7 +1199,7 @@ class Select extends Query
 	        throw new SelectException("_table is required");
 	    }
 	    
-	    return $this->_adapter->newStatement($this, false)->getDataObjectArray($this->_table->getRowClass(), $this->isReadOnly());
+	    return $this->_adapter->newStatement($this, false)->getDataObjectArray($this->_table, $this->isReadOnly());
 	}
 	
 	/**
@@ -1294,7 +1294,7 @@ class Select extends Query
 		$result->close();
 		if (isset($this->_table) && $data !== null){
 			$rowClass = $this->_table->getRowClass();
-			return new $rowClass($data, true, $this->isReadOnly());
+			return (new $rowClass($data, true, $this->isReadOnly()))->setTable($this->_table);
 		}
 		
 		return $data;

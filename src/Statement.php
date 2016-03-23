@@ -126,14 +126,16 @@ class Statement implements \IteratorAggregate, \Countable
 	}
 	
 	/**
+	 * @param $table Table
 	 * @return \Generator
 	 */
-	public function getDataObjectGenerator($rowClass, $readOnly = false){
+	public function getDataObjectGenerator($table, $readOnly = false){
 		if (!isset($this->_result)) $this->_query();
 		
 		if ($this->_storeResult) $this->_result->data_seek(0);
+		$rowClass = $table->getRowClass();
 		while($data = $this->_result->fetch_assoc()){
-			yield new $rowClass($data, true, $readOnly);
+			yield (new $rowClass($data, true, $readOnly))->setTable($table);
 		}
 		if (!$this->_storeResult) $this->_result->free();
 	}
@@ -265,14 +267,15 @@ class Statement implements \IteratorAggregate, \Countable
 	/**
 	 * @return array
 	 */
-	public function getDataObjectArray($rowClass, $readOnly = false){
+	public function getDataObjectArray($table, $readOnly = false){
 		if (!isset($this->_result)) $this->_query();
 	
 		$rowset = [];
+		$rowClass = $table->getRowClass();
 		if ($this->_storeResult) $this->_result->data_seek(0);
 	
 		while($data = $this->_result->fetch_assoc()){
-			$rowset[] = new $rowClass($data, true, $readOnly);
+			 $rowset[] = (new $rowClass($data, true, $readOnly))->setTable($table);
 		}
 		if (!$this->_storeResult) $this->_result->free();
 		return $rowset;

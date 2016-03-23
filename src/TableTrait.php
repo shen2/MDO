@@ -17,7 +17,7 @@ trait TableTrait {
      * 
      * @return Table
      */
-    public static function getTable(){
+    public static function getDefaultTable(){
 		if (!isset(self::$_defaultTable)){
 			self::$_defaultTable = new Table([
 				Table::ADAPTER=> static::$_db,
@@ -31,6 +31,19 @@ trait TableTrait {
 		return self::$_defaultTable;
 	}
 	
+	public static function getTable(){
+	    return static::getDefaultTable();
+	}
+	
+	/**
+	 * 
+	 * @param Table $table
+	 */
+	public function setTable($table){
+	    $this->_table = $table;
+	    return $this;
+	}
+	
 	/* 以下代码是为了向下兼容 */
 	/**
 	 * Returns an instance of a Select object.
@@ -40,7 +53,7 @@ trait TableTrait {
 	 */
 	public static function select($withFromPart = Table::SELECT_WITHOUT_FROM_PART)
 	{
-	    return static::getTable()->select($withFromPart);
+	    return static::getDefaultTable()->select($withFromPart);
 	}
 	
 	/**
@@ -51,7 +64,7 @@ trait TableTrait {
 	 */
 	public static function selectCol($columns = null)
 	{
-	    return static::getTable()->selectCol($columns);
+	    return static::getDefaultTable()->selectCol($columns);
 	}
 	
 	/**
@@ -62,7 +75,7 @@ trait TableTrait {
 	 */
 	public static function insert(array $data)
 	{
-	    return static::getTable()->insert($data);
+	    return static::getDefaultTable()->insert($data);
 	}
 	
 	/**
@@ -73,7 +86,7 @@ trait TableTrait {
 	 */
 	public static function insertDelayed(array $data)
 	{
-	    return static::getTable()->insertDelayed($data);
+	    return static::getDefaultTable()->insertDelayed($data);
 	}
 	
 	/**
@@ -84,7 +97,7 @@ trait TableTrait {
 	 */
 	public static function insertIgnore(array $data)
 	{
-	    return static::getTable()->insertIgnore($data);
+	    return static::getDefaultTable()->insertIgnore($data);
 	}
 	
 	/**
@@ -95,7 +108,7 @@ trait TableTrait {
 	 */
 	public static function insertOrUpdateRow(array $data)
 	{
-	    return static::getTable()->insertOrUpdateRow($data);
+	    return static::getDefaultTable()->insertOrUpdateRow($data);
 	}
 	
 	/**
@@ -107,7 +120,7 @@ trait TableTrait {
 	 */
 	public static function update(array $data, $where)
 	{
-	    return static::getTable()->update($data, $where);
+	    return static::getDefaultTable()->update($data, $where);
 	}
 	
 	/**
@@ -118,7 +131,7 @@ trait TableTrait {
 	 */
 	public static function delete($where)
 	{
-	    return static::getTable()->delete($where);
+	    return static::getDefaultTable()->delete($where);
 	}
 	
 	/**
@@ -141,7 +154,7 @@ trait TableTrait {
 	 */
 	public static function find()
 	{
-	    return call_user_func_array([static::getTable(), 'find'], func_get_args());
+	    return call_user_func_array([static::getDefaultTable(), 'find'], func_get_args());
 	}
 	
 	/**
@@ -149,7 +162,7 @@ trait TableTrait {
 	 * @return \SplFixedArray
 	 */
 	public static function fetchAllByPrimary($keys){
-	    return static::getTable()->fetchAllByPrimary($keys);
+	    return static::getDefaultTable()->fetchAllByPrimary($keys);
 	}
 	/*  向下兼容部分代码结束 */
 	
