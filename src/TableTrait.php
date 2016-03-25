@@ -44,6 +44,18 @@ trait TableTrait {
 	    return $this;
 	}
 	
+	/**
+	 * Fetches a new blank row (not from the database).
+	 *
+	 * @param  array $data OPTIONAL data to populate in the new row.
+	 * @param  string $defaultSource OPTIONAL flag to force default values into new row
+	 * @return DataObject
+	 */
+	public static function createRow(array $data = [])
+	{
+	    return parent::createRow($data)->setTable(static::getDefaultTable());
+	}
+	
 	/* 以下代码是为了向下兼容 */
 	/**
 	 * Returns an instance of a Select object.
