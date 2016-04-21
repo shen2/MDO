@@ -124,6 +124,17 @@ trait TableTrait {
 	}
 	
 	/**
+	 * Inserts Ignore a new row.
+	 *
+	 * @param  array  $data  Column-value pairs.
+	 * @return mixed		 The primary key of the row inserted.
+	 */
+	public static function insertMulti(array $data)
+	{
+	    return static::getDefaultTable()->insertMulti($data);
+	}
+	
+	/**
 	 * Updates existing rows.
 	 *
 	 * @param  array		$data  Column-value pairs.

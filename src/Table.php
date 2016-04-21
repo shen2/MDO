@@ -347,7 +347,7 @@ class Table{
 	 * Inserts Delayed a new row.
 	 *
 	 * @param  array  $data  Column-value pairs.
-	 * @return mixed		 The primary key of the row inserted.
+	 * @return \mysqli_result mysql result
 	 */
 	public function insertDelayed(array $data)
 	{
@@ -362,7 +362,7 @@ class Table{
 	 * Inserts Ignore a new row.
 	 *
 	 * @param  array  $data  Column-value pairs.
-	 * @return mixed		 The primary key of the row inserted.
+	 * @return \mysqli_result mysql result
 	 */
 	public function insertIgnore(array $data)
 	{
@@ -377,7 +377,7 @@ class Table{
 	 * 使用insertOnDuplicateKeyUpdate 插入一条记录，插入后不会refresh
 	 * 
 	 * @param  array  $data  Column-value pairs.
-	 * @return mixed		 The primary key of the row inserted.
+	 * @return \mysqli_result mysql result
 	 */
 	public function insertOrUpdateRow(array $data)
 	{
@@ -392,6 +392,37 @@ class Table{
 			->values(array_values($data))
 			->onDuplicateKeyUpdate($updateData);
 		return $insertQuery->query();
+	}
+	
+	/**
+	 * Insert multiple rows.
+	 *
+	 * @param  array  $data  values
+	 * @return \mysqli_result mysql result
+	 */
+	public function insertMulti(array $data)
+	{
+	    if (empty($data))
+	        return false;
+	    
+	    $columns = array_keys(current($data));
+	    
+	    $insertQuery = (new Insert($this->_db))
+	       ->into(($this->_schema ? $this->_schema . '.' : '') . $this->_name)
+	       ->columns($columns);
+	    
+	    foreach($data as $row){
+	        $values = [];
+	        
+	        foreach($columns as $col){
+	            // Doesn't check isset($row[$col]), because it already cause a Notice in log.
+	            $values[] = $row[$col];
+	        }
+	        
+	        $insertQuery->values($values);
+	    }
+	    
+	    return $insertQuery->query();
 	}
 	
 	/**
