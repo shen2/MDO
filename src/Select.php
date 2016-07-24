@@ -27,6 +27,7 @@ class Select extends Query
 	const FULL_JOIN	  = 'full join';
 	const CROSS_JOIN	 = 'cross join';
 	const NATURAL_JOIN   = 'natural join';
+        const STRAIGHT_JOIN   = 'straight_join';
 
 	/**
 	 * The initial values for the $_parts array.
@@ -61,6 +62,7 @@ class Select extends Query
 		self::FULL_JOIN,
 		self::CROSS_JOIN,
 		self::NATURAL_JOIN,
+            self::STRAIGHT_JOIN,
 	);
 
 	/**
@@ -288,6 +290,22 @@ class Select extends Query
 	{
 		return $this->_join(self::FULL_JOIN, $name, $cond, $cols, $schema);
 	}
+
+        /**
+         * Add a STRAIGHT JOIN table and colums to the query.
+         * The $name and $cols parameters follow the same logic
+         * as described in the from() method.
+         *
+         * @param  array|string|Expr $name The table name.
+         * @param  string $cond Join on this condition.
+         * @param  array|string $cols The columns to select from the joined table.
+         * @param  string $schema The database name to specify, if any.
+         * @return Select This Select object.
+         */
+        public function joinStraight($name, $cond, $cols = self::SQL_WILDCARD, $schema = null)
+        {
+            return $this->_join(self::STRAIGHT_JOIN, $name, $cond, $cols, $schema);
+        }
 
 	/**
 	 * Add a CROSS JOIN table and colums to the query.
