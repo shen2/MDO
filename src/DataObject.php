@@ -1,7 +1,7 @@
 <?php
 namespace MDO;
 
-class DataObject extends \ArrayObject
+abstract class DataObject extends \ArrayObject
 {
 
 	/**
@@ -70,6 +70,13 @@ class DataObject extends \ArrayObject
 		$row = new static(static::$_defaultValues, false, false);
 		$row->setFromArray($data);
 		return $row;
+	}
+
+	/**
+	 * @param $plugin PluginInterface
+	 */
+	public static function registerPlugin($plugin){
+		static::$_plugins[] = $plugin;
 	}
 
 	/*	下面是Object实例		*/
@@ -254,6 +261,9 @@ class DataObject extends \ArrayObject
 			 * Run pre-INSERT logic
 			 */
 			$this->_insert();
+			foreach(static::$_plugins as $plugin){
+				$plugin->preDbInsert($this);
+			}
 
 			$result = $this->_doInsert();
 
@@ -261,12 +271,18 @@ class DataObject extends \ArrayObject
 			 * Run post-INSERT logic
 			 */
 			$this->_postInsert();
+			foreach(static::$_plugins as $plugin){
+				$plugin->postDbInsert($this);
+			}
 		}
 		else {
 			/**
 			 * Run pre-UPDATE logic
 			 */
 			$this->_update();
+			foreach(static::$_plugins as $plugin){
+				$plugin->preDbUpdate($this);
+			}
 
 			$result = $this->_doUpdate();
 
@@ -276,6 +292,9 @@ class DataObject extends \ArrayObject
 			 * between changed data and clean (pre-changed) data.
 			 */
 			$this->_postUpdate();
+			foreach(static::$_plugins as $plugin){
+				$plugin->postDbUpdate($this);
+			}
 		}
 
 		/**
@@ -305,6 +324,9 @@ class DataObject extends \ArrayObject
 		 * Execute pre-DELETE logic
 		 */
 		$this->_delete();
+		foreach(static::$_plugins as $plugin){
+			$plugin->preDbDelete($this);
+		}
 
 		$result = $this->_doDelete();
 
@@ -312,6 +334,9 @@ class DataObject extends \ArrayObject
 		 * Execute post-DELETE logic
 		 */
 		$this->_postDelete();
+		foreach(static::$_plugins as $plugin){
+			$plugin->postDbDelete($this);
+		}
 
 		return $result;
 	}
@@ -401,4 +426,10 @@ class DataObject extends \ArrayObject
 	protected function _postDelete()
 	{
 	}
+
+	abstract protected function _doInsert();
+
+	abstract protected function _doUpdate();
+
+	abstract protected function _doDelete();
 }

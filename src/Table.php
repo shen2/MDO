@@ -331,16 +331,9 @@ class Table{
 		}
 
 		/**
-		 * Return the primary key value if the PK is a single column,
-		 * else return an associative array of the PK column/value pairs.
+		 * Return an associative array of the PK column/value pairs.
 		 */
-		$pkData = array_intersect_key($data, array_flip($this->_primary));
-		if (count($this->_primary) == 1) {
-			reset($pkData);
-			return current($pkData);
-		}
-
-		return $pkData;
+		return array_intersect_key($data, array_flip($this->_primary));
 	}
 	
 	/**
