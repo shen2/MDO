@@ -27,10 +27,7 @@ abstract class DataObject extends \ArrayObject
 
 	/**
 	 * The primary key column or columns.
-	 * A compound key should be declared as an array.
-	 * You may declare a single-column primary key
-	 * as a string.
-	 * modified by shen2 必须是数组!
+	 * MUST be declared as an array.
 	 *
 	 * @var array
 	 */
@@ -83,21 +80,14 @@ abstract class DataObject extends \ArrayObject
 	const ARRAYOBJECT_FLAGS = 0;//ArrayObject::ARRAY_AS_PROPS;
 
 	/**
-	 * This is set to a copy of $_data when the data is fetched from
-	 * a database, specified as a new tuple in the constructor, or
-	 * when dirty data is posted to the database with save().
+	 * The clean data of dirty fields
+	 * null      : This row is not stored
+	 * []        : This row is stored and not modified
+	 * not empty : This row is stored and modified
 	 *
 	 * @var array
 	 */
-	protected $_cleanData = array();
-
-	/**
-	 * Tracks columns where data has been updated. Allows more specific insert and
-	 * update operations.
-	 *
-	 * @var array
-	 */
-	protected $_modifiedFields = array();
+	protected $_cleanData = [];
 
 	/**
 	 * Connected is true if we have a reference to a live
@@ -140,11 +130,11 @@ abstract class DataObject extends \ArrayObject
 	{
 		parent::__construct($data, static::ARRAYOBJECT_FLAGS);
 		
-		if ($stored === true) {
-			$this->_cleanData = $this->getArrayCopy();
+		if (!$stored) {
+			$this->_cleanData = null;
 		}
 
-		if ($readOnly === true) {
+		if ($readOnly) {
 			$this->setReadOnly(true);
 		}
 
@@ -161,8 +151,9 @@ abstract class DataObject extends \ArrayObject
 	 */
 	public function offsetSet($columnName, $value)
 	{
+		if ($this->_cleanData !== null)
+			$this->_cleanData[$columnName] = $value;
 		parent::offsetSet($columnName,$value);
-		$this->_modifiedFields[$columnName] = true;
 	}
 
 	/**
@@ -172,7 +163,7 @@ abstract class DataObject extends \ArrayObject
 	 */
 	public function __sleep()
 	{
-		return array('_cleanData', '_readOnly' ,'_modifiedFields');
+		return array('_cleanData', '_readOnly');
 	}
 
 	/**
@@ -209,7 +200,7 @@ abstract class DataObject extends \ArrayObject
 	}
 	
 	public function isModified(){
-		return !empty($this->_modifiedFields); 
+		return $this->_cleanData === null || !empty($this->_cleanData); 
 	}
 
 	/**
@@ -251,12 +242,16 @@ abstract class DataObject extends \ArrayObject
 			throw new DataObjectException('This row has been marked read-only');
 		}
 
+		if ($this->_cleanData === []){
+			throw new DataObjectException('This row hasn\'t been modified');
+		}
+
 		/**
-		 * If the _cleanData array is empty,
+		 * If the _cleanData is null,
 		 * this is an INSERT of a new row.
 		 * Otherwise it is an UPDATE.
 		 */
-		if (empty($this->_cleanData)) {
+		if ($this->_cleanData === null) {
 			/**
 			 * Run pre-INSERT logic
 			 */

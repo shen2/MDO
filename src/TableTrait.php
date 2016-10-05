@@ -204,7 +204,7 @@ trait TableTrait {
 		/**
 		 * Execute the INSERT (this may throw an exception)
 		 */
-		$data = array_intersect_key($this->getArrayCopy(), $this->_modifiedFields);
+		$data = array_intersect_key($this->getArrayCopy(), $this->_cleanData);
 		$primaryKey = $this->_table->insert($data);
 
 		/**
@@ -234,7 +234,7 @@ trait TableTrait {
 		 * Compare the data to the modified fields array to discover
 		 * which columns have been changed.
 		 */
-		$diffData = array_intersect_key($this->getArrayCopy(), $this->_modifiedFields);
+		$diffData = array_intersect_key($this->getArrayCopy(), $this->_cleanData);
 
 		/**
 		 * Execute the UPDATE (this may throw an exception)
@@ -280,7 +280,7 @@ trait TableTrait {
 	    if ($useDirty) {
 	        $array = array_intersect_key($this->getArrayCopy(), $primary);
 	    } else {
-	        $array = array_intersect_key($this->_cleanData, $primary);
+	        $array = array_intersect_key($this->_cleanData + $this->getArrayCopy(), $primary);
 	    }
 	    if (count($primary) != count($array)) {
 	        throw new DataObjectException("The specified Table '".get_class($this->_table)."' does not have the same primary key as the Row");
@@ -322,8 +322,7 @@ trait TableTrait {
 	    }
 	
 	    //并不真的从数据库中查询记录，而只是记录当成是全新的
-	    $this->_cleanData = $this->getArrayCopy();
-	    $this->_modifiedFields = array();
+	    $this->_cleanData = [];
 	}
 	
 	protected function _realRefresh(){
@@ -336,9 +335,7 @@ trait TableTrait {
 	        throw new DataObjectException('Cannot refresh row as parent is missing');
 	    }
 	
-	    $this->_cleanData = $row->getArrayCopy();
-	    $this->exchangeArray($this->_cleanData);
-	
-	    $this->_modifiedFields = array();
+	    $this->exchangeArray($row->getArrayCopy());
+	    $this->_cleanData = [];
 	}
 }
