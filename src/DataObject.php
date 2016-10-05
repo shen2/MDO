@@ -238,15 +238,82 @@ class DataObject extends \ArrayObject
 	public function save($realRefresh = true)
 	{
 		/**
+		 * A read-only row cannot be saved.
+		 */
+		if ($this->_readOnly === true) {
+			throw new DataObjectException('This row has been marked read-only');
+		}
+
+		/**
 		 * If the _cleanData array is empty,
 		 * this is an INSERT of a new row.
 		 * Otherwise it is an UPDATE.
 		 */
 		if (empty($this->_cleanData)) {
-			return $this->_doInsert($realRefresh);
-		} else {
-			return $this->_doUpdate($realRefresh);
+			/**
+			 * Run pre-INSERT logic
+			 */
+			$this->_insert();
+
+			$result = $this->_doInsert();
+
+			/**
+			 * Run post-INSERT logic
+			 */
+			$this->_postInsert();
 		}
+		else {
+			/**
+			 * Run pre-UPDATE logic
+			 */
+			$this->_update();
+
+			$result = $this->_doUpdate();
+
+			/**
+			 * Run post-UPDATE logic.  Do this before the _refresh()
+			 * so the _postUpdate() function can tell the difference
+			 * between changed data and clean (pre-changed) data.
+			 */
+			$this->_postUpdate();
+		}
+
+		/**
+		 * Refresh the data just in case triggers in the RDBMS changed
+		 * any columns.  Also this resets the _cleanData.
+		 */
+		$realRefresh ? $this->_realRefresh() : $this->_refresh();
+
+		return $result;
+	}
+
+	/**
+	 * Deletes existing rows.
+	 *
+	 * @return int The number of rows deleted.
+	 */
+	public function remove()
+	{
+		/**
+		 * A read-only row cannot be deleted.
+		 */
+		if ($this->_readOnly === true) {
+			throw new DataObjectException('This row has been marked read-only');
+		}
+
+		/**
+		 * Execute pre-DELETE logic
+		 */
+		$this->_delete();
+
+		$result = $this->_doDelete();
+
+		/**
+		 * Execute post-DELETE logic
+		 */
+		$this->_postDelete();
+
+		return $result;
 	}
 
 	/**

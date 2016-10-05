@@ -193,20 +193,8 @@ trait TableTrait {
 	 * @return mixed The primary key value(s), as an associative array if the
 	 *	 key is compound, or a scalar if the key is single-column.
 	 */
-	protected function _doInsert($realRefresh = true)
+	protected function _doInsert()
 	{
-		/**
-		 * A read-only row cannot be saved.
-		 */
-		if ($this->_readOnly === true) {
-			throw new DataObjectException('This row has been marked read-only');
-		}
-
-		/**
-		 * Run pre-INSERT logic
-		 */
-		$this->_insert();
-
 		/**
 		 * Execute the INSERT (this may throw an exception)
 		 */
@@ -233,16 +221,6 @@ trait TableTrait {
 		 */
 		$this->setFromArray($newPrimaryKey);
 
-		/**
-		 * Run post-INSERT logic
-		 */
-		$this->_postInsert();
-
-		/**
-		 * Update the _cleanData to reflect that the data has been inserted.
-		 */
-		$realRefresh ? $this->_realRefresh() : $this->_refresh();
-		
 		return $primaryKey;
 	}
 
@@ -250,25 +228,13 @@ trait TableTrait {
 	 * @return mixed The primary key value(s), as an associative array if the
 	 *	 key is compound, or a scalar if the key is single-column.
 	 */
-	protected function _doUpdate($realRefresh = true)
+	protected function _doUpdate()
 	{
-		/**
-		 * A read-only row cannot be saved.
-		 */
-		if ($this->_readOnly === true) {
-			throw new DataObjectException('This row has been marked read-only');
-		}
-
 		/**
 		 * Get expressions for a WHERE clause
 		 * based on the primary key value(s).
 		 */
 		$where = $this->_getWhereQuery(false);
-
-		/**
-		 * Run pre-UPDATE logic
-		 */
-		$this->_update();
 
 		/**
 		 * Compare the data to the modified fields array to discover
@@ -285,19 +251,6 @@ trait TableTrait {
 		if (count($diffData) > 0) {
 			$this->_table->update($diffData, $where);
 		}
-
-		/**
-		 * Run post-UPDATE logic.  Do this before the _refresh()
-		 * so the _postUpdate() function can tell the difference
-		 * between changed data and clean (pre-changed) data.
-		 */
-		$this->_postUpdate();
-
-		/**
-		 * Refresh the data just in case triggers in the RDBMS changed
-		 * any columns.  Also this resets the _cleanData.
-		 */
-		$realRefresh ? $this->_realRefresh() : $this->_refresh();
 
 		/**
 		 * Return the primary key value(s) as an array
@@ -317,33 +270,13 @@ trait TableTrait {
 	 *
 	 * @return int The number of rows deleted.
 	 */
-	public function remove()
+	protected function _doDelete()
 	{
-		/**
-		 * A read-only row cannot be deleted.
-		 */
-		if ($this->_readOnly === true) {
-			throw new DataObjectException('This row has been marked read-only');
-		}
-
 		$where = $this->_getWhereQuery();
-
-		/**
-		 * Execute pre-DELETE logic
-		 */
-		$this->_delete();
-		
 		/**
 		 * Execute the DELETE (this may throw an exception)
 		 */
-		$result = $this->_table->delete($where);
-
-		/**
-		 * Execute post-DELETE logic
-		 */
-		$this->_postDelete();
-
-		return $result;
+		return $this->_table->delete($where);
 	}
 
 	/**
