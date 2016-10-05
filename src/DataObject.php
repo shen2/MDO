@@ -341,4 +341,64 @@ class DataObject extends \ArrayObject
 	{
 		return $real ? $this->_realRefresh() : $this->_refresh();
 	}
+
+	/**
+	 * Allows pre-insert logic to be applied to row.
+	 * Subclasses may override this method.
+	 *
+	 * @return void
+	 */
+	protected function _insert()
+	{
+	}
+
+	/**
+	 * Allows post-insert logic to be applied to row.
+	 * Subclasses may override this method.
+	 *
+	 * @return void
+	 */
+	protected function _postInsert()
+	{
+	}
+
+	/**
+	 * Allows pre-update logic to be applied to row.
+	 * Subclasses may override this method.
+	 *
+	 * @return void
+	 */
+	protected function _update()
+	{
+	}
+
+	/**
+	 * Allows post-update logic to be applied to row.
+	 * Subclasses may override this method.
+	 *
+	 * @return void
+	 */
+	protected function _postUpdate()
+	{
+	}
+
+	/**
+	 * Allows pre-delete logic to be applied to row.
+	 * Subclasses may override this method.
+	 *
+	 * @return void
+	 */
+	protected function _delete()
+	{
+	}
+
+	/**
+	 * Allows post-delete logic to be applied to row.
+	 * Subclasses may override this method.
+	 *
+	 * @return void
+	 */
+	protected function _postDelete()
+	{
+	}
 }
